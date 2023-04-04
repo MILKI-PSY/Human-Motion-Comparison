@@ -1,6 +1,8 @@
-SIMPLIFIED_JOINTS = ["Head", "Neck", "Left Upper Arm", "Right Upper Arm", "Left Forearm", "Right Forearm",
-                     "Left Hand", "Right Hand", "Pelvis", "Left Upper Leg", "Right Upper Leg",
-                     "Left Lower Leg", "Right Lower Leg", "Left Foot", "Right Foot"]
+SIMPLIFIED_JOINTS = ["Pelvis", "Neck", "Head", "Right Upper Arm", "Right Forearm",
+                     "Right Hand", "Left Upper Arm", "Left Forearm", "Left Hand",
+                     "Right Upper Leg", "Right Lower Leg", "Right Foot", "Left Upper Leg",
+                     "Left Lower Leg", "Left Foot"]
+
 
 SKELETON_CONNECTION_MAP = [["Neck", "Head"],
                          ["Neck", "Left Upper Arm"],

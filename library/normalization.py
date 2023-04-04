@@ -77,4 +77,16 @@ def synchronize_motions(recording_0, recording_1, position_recording):
     return synchronized_position_recording
 
 
+def get_scores(recording_0, recording_1):
+    joints_distances = {}
+    for index, joint in enumerate(SIMPLIFIED_JOINTS):
+        joints_distances[joint] = np.sqrt(np.sum(np.square(
+            recording_0.iloc[:, index * 3:index * 3 + 3].values - recording_1.iloc[:,
+                                                                           index * 3:index * 3 + 3].values), axis=1))
+
+    df_joints_distances = pd.DataFrame(joints_distances)
+    df_joints_distances["overall"] = df_joints_distances.apply(lambda x: x.sum(), axis=1)
+    return df_joints_distances
+
+
 
