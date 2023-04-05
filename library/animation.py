@@ -1,41 +1,48 @@
 import matplotlib.pyplot as plt
-from matplotlib.animation import FuncAnimation
+from matplotlib.animation import FuncAnimation, PillowWriter
 from constants import *
 import matplotlib.colors as mcolors
+import matplotlib.animation as animation
+
+
 
 
 class Animation:
 
-    def __init__(self, recording_pairs, with_visualized_velocities=False):
+    def __init__(self, motions, with_visualized_velocities=False, is_repeat=False):
         self.is_paused = False
-        self.recording_pairs = recording_pairs
         self.with_visualized_velocities = with_visualized_velocities
-        self.colors = list(mcolors.TABLEAU_COLORS.values())
+        self.is_repeat = is_repeat
+        self.colors = list(mcolors.BASE_COLORS.values())
+
+        self.fig = plt.figure()
+        self.ax = self.fig.add_subplot(projection="3d")
+
+        self.ax.set(xlim3d=(-1, 1), xlabel='X')
+        self.ax.set(ylim3d=(-1, 1), ylabel='Y')
+        self.ax.set(zlim3d=(-1, 1), zlabel='Z')
+
+        for index, motion in enumerate(motions.iterrows()):
+            position_recording = motion.position_recording
+            velocity_recording = motion.velocity_recording
+            skeleton = [self.ax.plot([], [], [], c=self.colors[index * 2])[0] for _ in SKELETON_CONNECTION_MAP]
+            visualized_velocities = [self.ax.plot([], [], [], c=self.colors[index * 2 + 1])[0] for _ in
+                                     SKELETON_CONNECTION_MAP]
+
+        self.ani = FuncAnimation(self.fig, self.update, frames=len(position_recording), interval=40,
+                                     repeat=self.is_repeat,
+                                     fargs=(position_recording, skeleton, velocity_recording, visualized_velocities))
 
     def show(self):
-        fig = plt.figure()
-        ax = fig.add_subplot(projection="3d")
 
-        ax.set(xlim3d=(-1, 1), xlabel='X')
-        ax.set(ylim3d=(-1, 1), ylabel='Y')
-        ax.set(zlim3d=(-1, 1), zlabel='Z')
-
-        anis = list()
-        for index, recording_pair in self.recording_pairs.iterrows():
-            position_recording = recording_pair["position recording"]
-            velocity_recording = recording_pair["velocity recording"]
-            skeleton = [ax.plot([], [], [], c=self.colors[index * 2])[0] for _ in SKELETON_CONNECTION_MAP]
-            visualized_velocities = [ax.plot([], [], [], c=self.colors[index * 2 + 1])[0] for _ in
-                                     SKELETON_CONNECTION_MAP]
-            anis.append(
-                FuncAnimation(fig, self.update, frames=len(position_recording), interval=40, repeat=False,
-                              fargs=(position_recording, skeleton, velocity_recording, visualized_velocities)))
-
-        fig.canvas.mpl_connect('button_press_event', self.toggle_pause(anis))
-        plt.show()
+            self.fig.canvas.mpl_connect('button_press_event', self.toggle_pause(self.ani))
+            plt.show()
 
     def set_with_visualized_velocities(self, value):
         self.with_visualized_velocities = value
+
+    def set_is_repeat(self, value):
+        self.is_repeat = value
 
     def update(self, index, position_recording, skeleton, velocity_recording, visualized_velocities):
         velocity = None
