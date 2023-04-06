@@ -1,9 +1,8 @@
 import matplotlib.pyplot as plt
-from matplotlib.animation import FuncAnimation
+from matplotlib.animation import FuncAnimation, PillowWriter
 from constants import *
 import matplotlib.colors as mcolors
 from matplotlib.widgets import Button
-import matplotlib.animation as animation
 
 
 class Character:
@@ -91,3 +90,6 @@ class Animation:
             self.ani.pause()
         self.is_paused = not self.is_paused
 
+    def save_as_gif(self, name):
+        writer = PillowWriter(fps=30)
+        self.ani.save(ANIMATION_SAVE_PATH + name + ".gif", writer=writer)
