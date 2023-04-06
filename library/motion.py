@@ -7,10 +7,17 @@ from constants import *
 
 
 class Motion:
-    def __init__(self, position_recording, velocity_recording=None):
+    def __init__(self, position_recording, velocity_recording=None, label="No Label"):
         self.position_recording = position_recording
         self.velocity_recording = velocity_recording
+        self.label = label
         self.rotation_parameters = self.get_rotation_parameters()
+
+    def __len__(self):
+        return len(self.position_recording)
+
+    def __gt__(self, other):
+        return len(self) > len(other)
 
     def get_rotation_parameters(self):
         def calculate_sin_cos(position_frame):
