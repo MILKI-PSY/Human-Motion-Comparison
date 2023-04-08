@@ -50,9 +50,6 @@ class Animation:
     def set_with_visualized_velocities(self, value):
         self.with_visualized_velocities = value
 
-    def set_is_repeat(self, value):
-        self.is_repeat = value
-
     def update(self, index):
         for character in self.characters:
             if index < len(character):

@@ -12,6 +12,9 @@ class Motion:
         self.velocity_recording = velocity_recording
         self.label = label
         self.rotation_parameters = self.get_rotation_parameters()
+        self.weights = {}
+        for joint in SIMPLIFIED_JOINTS:
+            self.weights[joint] = 1
 
     def __len__(self):
         return len(self.position_recording)
@@ -32,59 +35,54 @@ class Motion:
 
         return rotation_parameters
 
+    def centre(self):
+        columns_with_x = self.position_recording.columns[self.position_recording.columns.str.contains("x")]
+        columns_with_y = self.position_recording.columns[self.position_recording.columns.str.contains("y")]
+        columns_with_z = self.position_recording.columns[self.position_recording.columns.str.contains("z")]
+        self.position_recording[columns_with_x] = self.position_recording[columns_with_x].sub(
+            self.position_recording["Pelvis x"], axis='index')
+        self.position_recording[columns_with_y] = self.position_recording[columns_with_y].sub(
+            self.position_recording["Pelvis y"], axis='index')
+        self.position_recording[columns_with_z] = self.position_recording[columns_with_z].sub(
+            self.position_recording["Pelvis z"], axis='index')
+        return self
 
-def centre(motion):
-    columns_with_x = motion.position_recording.columns[motion.position_recording.columns.str.contains("x")]
-    columns_with_y = motion.position_recording.columns[motion.position_recording.columns.str.contains("y")]
-    columns_with_z = motion.position_recording.columns[motion.position_recording.columns.str.contains("z")]
-    motion.position_recording[columns_with_x] = motion.position_recording[columns_with_x].sub(
-        motion.position_recording["Pelvis x"], axis='index')
-    motion.position_recording[columns_with_y] = motion.position_recording[columns_with_y].sub(
-        motion.position_recording["Pelvis y"], axis='index')
-    motion.position_recording[columns_with_z] = motion.position_recording[columns_with_z].sub(
-        motion.position_recording["Pelvis z"], axis='index')
-    return motion
+    def confront(self):
+        def rotate(frame, sin, cos):
+            rotation_matrix = np.array([[cos, sin, 0], [-sin, cos, 0], [0, 0, 1]])
+            for joint in SIMPLIFIED_JOINTS:
+                frame[[joint + " x", joint + " y", joint + " z"]] \
+                    = np.dot(rotation_matrix, frame[[joint + " x", joint + " y", joint + " z"]]).T
+            return frame
 
+        series_sin = self.rotation_parameters["sin"]
+        series_cos = self.rotation_parameters["cos"]
+        self.position_recording[self.position_recording.columns] = self.position_recording.apply(
+            lambda x: rotate(x, series_sin[x.name], series_cos[x.name]), axis=1, result_type="expand")
 
-def confront(motion):
-    def rotate(frame, sin, cos):
-        rotation_matrix = np.array([[cos, sin, 0], [-sin, cos, 0], [0, 0, 1]])
-        for joint in SIMPLIFIED_JOINTS:
-            frame[[joint + " x", joint + " y", joint + " z"]] = np.dot(rotation_matrix,
-                                                                       frame[[joint + " x", joint + " y",
-                                                                              joint + " z"]]).T
-        return frame
+    def synchronized_by(self, reference_motion):
+        def frame_distance(frame_0, frame_1):
+            distance = 0
+            for i in range(0, len(frame_0), 3):  # step = 3, because 3 columns (x, y, z) for a joint
+                joint_in_frame_0 = [frame_0[i], frame_0[i + 1], frame_0[i + 2]]
+                joint_in_frame_1 = [frame_1[i], frame_1[i + 1], frame_1[i + 2]]
+                distance += self.weights[SIMPLIFIED_JOINTS[int(i / 3)]] * euclidean(joint_in_frame_0, joint_in_frame_1)
+            return distance
 
-    series_sin = motion.rotation_parameters["sin"]
-    series_cos = motion.rotation_parameters["cos"]
-    motion.position_recording[motion.position_recording.columns] = motion.position_recording.apply(
-        lambda x: rotate(x, series_sin[x.name], series_cos[x.name]), axis=1, result_type="expand")
-    motion.velocity_recording[motion.velocity_recording.columns] = motion.velocity_recording.apply(
-        lambda x: rotate(x, series_sin[x.name], series_cos[x.name]), axis=1, result_type="expand")
-    return motion
-
-
-def synchronize_motions(motion_0, motion_1):
-    def frame_distance(frame_0, frame_1):
-        distance = 0
-        for i in range(0, len(frame_0), 3):
-            joint_in_frame_0 = [frame_0[i], frame_0[i + 1], frame_0[i + 2]]
-            joint_in_frame_1 = [frame_1[i], frame_1[i + 1], frame_1[i + 2]]
-            distance += euclidean(joint_in_frame_0, joint_in_frame_1)
-        return distance
-
-    alignment = dtw(motion_0.velocity_recording, motion_1.velocity_recording, dist_method=frame_distance)
-    synchronized_position_recording = pd.DataFrame(columns=motion_0.position_recording.columns)
-    synchronized_recording_1 = pd.DataFrame(columns=motion_0.velocity_recording.columns)
-    i = -1
-    for step in range(len(alignment.index1)):
-        if i != alignment.index1[step]:
-            i = alignment.index1[step]
-            synchronized_position_recording = pd.concat(
-                [synchronized_position_recording,
-                 motion_1.position_recording.iloc[alignment.index2[step]].to_frame().T],
-                ignore_index=True)
-    return Motion(synchronized_position_recording)
+        alignment = dtw(reference_motion.position_recording, self.position_recording, dist_method=frame_distance)
+        synchronized_position_recording = pd.DataFrame(columns=self.position_recording.columns)
+        synchronized_velocity_recording = pd.DataFrame(columns=self.velocity_recording.columns)
+        i = -1
+        for step in range(len(alignment.index1)):
+            if i != alignment.index1[step]:
+                i = alignment.index1[step]
+                synchronized_position_recording = pd.concat(
+                    [synchronized_position_recording,
+                     self.position_recording.iloc[alignment.index2[step]].to_frame().T], ignore_index=True)
+                synchronized_velocity_recording = pd.concat(
+                    [synchronized_velocity_recording,
+                     self.velocity_recording.iloc[alignment.index2[step]].to_frame().T], ignore_index=True)
+        return Motion(synchronized_position_recording, velocity_recording=synchronized_velocity_recording)
 
 
 def get_scores(recording_0, recording_1):
