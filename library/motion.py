@@ -64,9 +64,7 @@ class Motion:
         def frame_distance(frame_0, frame_1):
             distance = 0
             for i in range(0, len(frame_0), 3):  # step = 3, because 3 columns (x, y, z) for a joint
-                joint_in_frame_0 = [frame_0[i], frame_0[i + 1], frame_0[i + 2]]
-                joint_in_frame_1 = [frame_1[i], frame_1[i + 1], frame_1[i + 2]]
-                distance += self.weights[SIMPLIFIED_JOINTS[int(i / 3)]] * euclidean(joint_in_frame_0, joint_in_frame_1)
+                distance += self.weights[SIMPLIFIED_JOINTS[int(i / 3)]] * euclidean(frame_0[i:i+3], frame_1[i:i+3])
             return distance
 
         alignment = dtw(reference_motion.position_recording, self.position_recording, dist_method=frame_distance)

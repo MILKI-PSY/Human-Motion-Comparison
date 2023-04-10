@@ -3,6 +3,7 @@ from matplotlib.animation import FuncAnimation, PillowWriter
 from constants import *
 import matplotlib.colors as mcolors
 from matplotlib.widgets import Button
+import numpy as np
 
 
 class Character:
@@ -19,9 +20,9 @@ class Character:
 
 class Animation:
 
-    def __init__(self, motions, with_visualized_velocities=False, is_repeat=False):
+    def __init__(self, motions, flag_visualized_velocities=False, is_repeat=False):
         self.is_paused = False
-        self.with_visualized_velocities = with_visualized_velocities
+        self.flag_visualized_velocities = flag_visualized_velocities
         self.is_repeat = is_repeat
         self.colors = list(mcolors.BASE_COLORS.values())
 
@@ -41,44 +42,58 @@ class Animation:
                                      SKELETON_CONNECTION_MAP]
             self.characters.append(Character(motion, skeleton, visualized_velocities))
 
+        joint_positions = np.array(HEATMAP_JOINT_POSITION)
+        self.heatmap = self.ax.scatter(joint_positions[:, 0], joint_positions[:, 1], joint_positions[:, 2], s=200,
+                                       vmin=0, vmax=2, c=np.zeros(len(HEATMAP_JOINT_POSITION)), cmap="gist_heat")
+
         self.ani = FuncAnimation(self.fig, self.update, frames=len(max(motions)), interval=40, repeat=self.is_repeat)
         self.ax.legend()
 
         self.button = Button(self.fig.add_axes([0.81, 0.05, 0.1, 0.075]), 'stop')
         self.button.on_clicked(self.toggle_pause)
 
-    def set_with_visualized_velocities(self, value):
-        self.with_visualized_velocities = value
+    def set_flag_visualized_velocities(self, value):
+        self.flag_visualized_velocities = value
 
     def update(self, index):
+        def update_skeleton():
+            for line, joint_connection in zip(character.skeleton, SKELETON_CONNECTION_MAP):
+                endpoint_0 = joint_connection[0]
+                endpoint_1 = joint_connection[1]
+                line_x = [position[endpoint_0 + " x"], position[endpoint_1 + " x"]]
+                line_y = [position[endpoint_0 + " y"], position[endpoint_1 + " y"]]
+                line_z = [position[endpoint_0 + " z"], position[endpoint_1 + " z"]]
+
+                line.set_data([line_x, line_y])
+                line.set_3d_properties(line_z)
+
+        def update_visualized_velocities():
+            for joint_velocity, joint_connection in zip(character.visualized_velocities, SKELETON_CONNECTION_MAP):
+                velocity = character.velocity_recording.iloc[index]
+                endpoint_1 = joint_connection[1]
+
+                joint_velocity_x = [position[endpoint_1 + " x"],
+                                    position[endpoint_1 + " x"] - velocity[endpoint_1 + " x"]]
+                joint_velocity_y = [position[endpoint_1 + " y"],
+                                    position[endpoint_1 + " y"] - velocity[endpoint_1 + " y"]]
+                joint_velocity_z = [position[endpoint_1 + " z"],
+                                    position[endpoint_1 + " z"] - velocity[endpoint_1 + " z"]]
+
+                joint_velocity.set_data([joint_velocity_x, joint_velocity_y])
+                joint_velocity.set_3d_properties(joint_velocity_z)
+
+        def update_heatmap():
+            print(index)
+            arr = np.concatenate((np.array([index * 0.001]), np.zeros(14)))
+            self.heatmap.set_array(arr)
+
         for character in self.characters:
             if index < len(character):
-                velocity = None
                 position = character.position_recording.iloc[index]
-                if self.with_visualized_velocities:
-                    velocity = character.velocity_recording.iloc[index]
-                for line, joint_velocity, joint_connection in zip(character.skeleton, character.visualized_velocities,
-                                                                  SKELETON_CONNECTION_MAP):
-                    endpoint_0 = joint_connection[0]
-                    endpoint_1 = joint_connection[1]
-
-                    line_x = [position[endpoint_0 + " x"], position[endpoint_1 + " x"]]
-                    line_y = [position[endpoint_0 + " y"], position[endpoint_1 + " y"]]
-                    line_z = [position[endpoint_0 + " z"], position[endpoint_1 + " z"]]
-
-                    line.set_data([line_x, line_y])
-                    line.set_3d_properties(line_z)
-
-                    if self.with_visualized_velocities:
-                        joint_velocity_x = [position[endpoint_1 + " x"],
-                                            position[endpoint_1 + " x"] - velocity[endpoint_1 + " x"]]
-                        joint_velocity_y = [position[endpoint_1 + " y"],
-                                            position[endpoint_1 + " y"] - velocity[endpoint_1 + " y"]]
-                        joint_velocity_z = [position[endpoint_1 + " z"],
-                                            position[endpoint_1 + " z"] - velocity[endpoint_1 + " z"]]
-
-                        joint_velocity.set_data([joint_velocity_x, joint_velocity_y])
-                        joint_velocity.set_3d_properties(joint_velocity_z)
+                update_skeleton()
+                update_heatmap()
+                if self.flag_visualized_velocities:
+                    update_visualized_velocities()
 
     def toggle_pause(self, event):
         if self.is_paused:
