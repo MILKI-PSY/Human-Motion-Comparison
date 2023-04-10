@@ -64,7 +64,7 @@ class Motion:
         def frame_distance(frame_0, frame_1):
             distance = 0
             for i in range(0, len(frame_0), 3):  # step = 3, because 3 columns (x, y, z) for a joint
-                distance += self.weights[SIMPLIFIED_JOINTS[int(i / 3)]] * euclidean(frame_0[i:i+3], frame_1[i:i+3])
+                distance += self.weights[SIMPLIFIED_JOINTS[int(i / 3)]] * euclidean(frame_0[i:i + 3], frame_1[i:i + 3])
             return distance
 
         alignment = dtw(reference_motion.position_recording, self.position_recording, dist_method=frame_distance)
@@ -83,9 +83,12 @@ class Motion:
         return Motion(synchronized_position_recording, velocity_recording=synchronized_velocity_recording)
 
 
-def get_scores(recording_0, recording_1):
+def get_scores(motion_0, motion_1):
     def vector_euclidean(arr_0, arr_1):
         return np.sqrt(np.sum(np.square(arr_0 - arr_1), axis=1))
+
+    recording_0 = motion_0.velocity_recording
+    recording_1 = motion_1.velocity_recording
 
     joints_distances = {}
     for index, joint in enumerate(SIMPLIFIED_JOINTS):

@@ -20,10 +20,11 @@ class Character:
 
 class Animation:
 
-    def __init__(self, motions, flag_visualized_velocities=False, is_repeat=False):
+    def __init__(self, motions, scores, flag_visualized_velocities=False, is_repeat=False):
         self.is_paused = False
         self.flag_visualized_velocities = flag_visualized_velocities
         self.is_repeat = is_repeat
+        self.scores = scores
         self.colors = list(mcolors.BASE_COLORS.values())
 
         self.fig = plt.figure()
@@ -44,7 +45,8 @@ class Animation:
 
         joint_positions = np.array(HEATMAP_JOINT_POSITION)
         self.heatmap = self.ax.scatter(joint_positions[:, 0], joint_positions[:, 1], joint_positions[:, 2], s=200,
-                                       vmin=0, vmax=2, c=np.zeros(len(HEATMAP_JOINT_POSITION)), cmap="gist_heat")
+                                       vmin=0, vmax=1, c=np.zeros(len(HEATMAP_JOINT_POSITION)), cmap="gist_heat",
+                                       alpha=1)
 
         self.ani = FuncAnimation(self.fig, self.update, frames=len(max(motions)), interval=40, repeat=self.is_repeat)
         self.ax.legend()
@@ -83,8 +85,7 @@ class Animation:
                 joint_velocity.set_3d_properties(joint_velocity_z)
 
         def update_heatmap():
-            print(index)
-            arr = np.concatenate((np.array([index * 0.001]), np.zeros(14)))
+            arr = self.scores.iloc[index][:-1]
             self.heatmap.set_array(arr)
 
         for character in self.characters:
