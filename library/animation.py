@@ -1,55 +1,61 @@
 import matplotlib.pyplot as plt
 from matplotlib.animation import FuncAnimation, PillowWriter
 from constants import *
-import matplotlib.colors as mcolors
+
 from matplotlib.widgets import Button
 import numpy as np
 
 
 class Character:
-    def __init__(self, motion, skeleton, visualized_velocities):
+    def __init__(self, motion, axes, color_generator):
         self.position_recording = motion.position_recording
         self.velocity_recording = motion.velocity_recording
-        self.label = motion.label
-        self.skeleton = skeleton
-        self.visualized_velocities = visualized_velocities
+        color = next(color_generator)
+        self.skeleton = [axes.plot([], [], [], c=color)[0] for _ in SKELETON_CONNECTION_MAP]
+        self.skeleton[0].set_label(motion.label)  # the whole skeleton is the same color, so one label is enough
+        color = next(color_generator)
+        self.visualized_velocities = [axes.plot([], [], [], c=color)[0] for _ in SIMPLIFIED_JOINTS]
 
     def __len__(self):
         return len(self.position_recording)
 
 
 class Animation:
-
-    def __init__(self, motions, scores, flag_visualized_velocities=False, is_repeat=False):
+    def __init__(self, motions, scores=None, flag_visualized_velocities=False, flag_repeat=False, flag_heatmap=False):
         self.is_paused = False
         self.flag_visualized_velocities = flag_visualized_velocities
-        self.is_repeat = is_repeat
+        self.flag_repeat = flag_repeat
+        self.flag_heatmap = flag_heatmap
         self.scores = scores
-        self.colors = list(mcolors.BASE_COLORS.values())
+        self.color_generator = self.get_color_generator()
 
         self.fig = plt.figure()
         self.fig.subplots_adjust(bottom=0.2)
-        self.ax = self.fig.add_subplot(projection="3d")
 
-        self.ax.set(xlim3d=(-1, 1), xlabel='X')
-        self.ax.set(ylim3d=(-1, 1), ylabel='Y')
-        self.ax.set(zlim3d=(-1, 1), zlabel='Z')
+        if self.flag_heatmap:
+            self.ax_heatmap = self.fig.add_subplot(1, 2, 2)
+            self.ax_heatmap.set_aspect(1)
+            self.ax_heatmap.set_axis_off()
+            self.ax_heatmap.set_xlim(-1, 1)
+            self.ax_heatmap.set_ylim(-1, 1)
+            joint_positions = np.array(HEATMAP_JOINT_POSITION)
+            self.heatmap = self.ax_heatmap.scatter(joint_positions[:, 0], joint_positions[:, 1], s=200, vmin=0, vmax=1,
+                                                   c=np.zeros(len(HEATMAP_JOINT_POSITION)), cmap="Reds")
+
+            self.ax_motions = self.fig.add_subplot(1, 2, 1, projection="3d")
+        else:
+            self.ax_motions = self.fig.add_subplot(1, 1, 1, projection="3d")
+
+        self.ax_motions.set(xlim3d=(-1, 1), xlabel='X')
+        self.ax_motions.set(ylim3d=(-1, 1), ylabel='Y')
+        self.ax_motions.set(zlim3d=(-1, 1), zlabel='Z')
 
         self.characters = []
-        for index, motion in enumerate(motions):
-            skeleton = [self.ax.plot([], [], [], c=self.colors[index * 2])[0] for _ in SKELETON_CONNECTION_MAP]
-            skeleton[0].set_label(motion.label)
-            visualized_velocities = [self.ax.plot([], [], [], c=self.colors[index * 2 + 1])[0] for _ in
-                                     SKELETON_CONNECTION_MAP]
-            self.characters.append(Character(motion, skeleton, visualized_velocities))
+        for motion in motions:
+            self.characters.append(Character(motion, self.ax_motions, self.color_generator))
+        self.ax_motions.legend()
 
-        joint_positions = np.array(HEATMAP_JOINT_POSITION)
-        self.heatmap = self.ax.scatter(joint_positions[:, 0], joint_positions[:, 1], joint_positions[:, 2], s=200,
-                                       vmin=0, vmax=1, c=np.zeros(len(HEATMAP_JOINT_POSITION)), cmap="gist_heat",
-                                       alpha=1)
-
-        self.ani = FuncAnimation(self.fig, self.update, frames=len(max(motions)), interval=40, repeat=self.is_repeat)
-        self.ax.legend()
+        self.ani = FuncAnimation(self.fig, self.update, frames=len(max(motions)), interval=40, repeat=self.flag_repeat)
 
         self.button = Button(self.fig.add_axes([0.81, 0.05, 0.1, 0.075]), 'stop')
         self.button.on_clicked(self.toggle_pause)
@@ -85,14 +91,14 @@ class Animation:
                 joint_velocity.set_3d_properties(joint_velocity_z)
 
         def update_heatmap():
-            arr = self.scores.iloc[index][:-1]
-            self.heatmap.set_array(arr)
+            self.heatmap.set_array(self.scores.iloc[index][:-1])  # -1 because the last element is overall
 
         for character in self.characters:
             if index < len(character):
                 position = character.position_recording.iloc[index]
                 update_skeleton()
-                update_heatmap()
+                if self.flag_heatmap:
+                    update_heatmap()
                 if self.flag_visualized_velocities:
                     update_visualized_velocities()
 
@@ -106,3 +112,7 @@ class Animation:
     def save_as_gif(self, name):
         writer = PillowWriter(fps=30)
         self.ani.save(ANIMATION_SAVE_PATH + name + ".gif", writer=writer)
+
+    def get_color_generator(self):
+        for color in COLOR_POOL:
+            yield color
