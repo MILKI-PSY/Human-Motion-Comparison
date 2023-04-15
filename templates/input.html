@@ -21,11 +21,12 @@
             return weights;
         }
 
-        let chosen_slot = "0";
-        let wights_groups = [];
-        wights_groups.push(get_default_weights());
 
         $(document).ready(function () {
+            let chosen_slot = "0";
+            let wights_groups = [];
+            wights_groups.push(get_default_weights());
+
             $(document).on("click", ".add", function () {
                 let index = Number($(this).val());
                 console.log(index)
@@ -33,19 +34,19 @@
                 $(this).parent().parent().after(`
         <div class="row mt-3">
             <div class="col col-md-1">
-                <button type="button" class="btn btn-primary add" value="` + index + `">+</button>
+                <button type="button" class="btn btn-primary add" value="${index}">+</button>
             </div>
-            <div class="col">
-                <input type="number" class="form-control" placeholder="Node of Motion 0" name="motion_0">
+            <div class="col motion_0">
+                <input type="number" class="form-control" placeholder="Node of Motion 0">
             </div>
-            <div class="col">
-                <input type="number" class="form-control" placeholder="Node of Motion 1" name="motion_1">
-            </div>
-            <div class="col col-md-1">
-                <button type="button" class="btn btn-primary set_weights" value="` + index + `">set</button>
+            <div class="col motion_1">
+                <input type="number" class="form-control" placeholder="Node of Motion 1" >
             </div>
             <div class="col col-md-1">
-                <button type="button" class="btn btn-danger sub" value="\` + index + \`">-</button>
+                <button type="button" class="btn btn-primary set_weights" value="${index}">set</button>
+            </div>
+            <div class="col col-md-1">
+                <button type="button" class="btn btn-danger sub" value="${index}">-</button>
             </div>
         </div>`)
 
@@ -68,7 +69,6 @@
 
                 });
             })
-
             $('.weight_input input').change(function () {
                 let index = Number(chosen_slot);
                 let key = $(this).attr("id");
@@ -76,23 +76,97 @@
                 console.log("key:" + key + " val:" + $(this).val());
                 wights_groups[index].set(key, value);
             });
-            $(test).click(function () {
-                console.log(wights_groups)
-            });
 
             let mannequin_wight = $("#weights").width();
             let mannequin_height = mannequin_wight * 1.364 //The resolution of the original image is 670 * 914
             $("#weights").css("height", mannequin_height + "px");
             $("#weights").css("background-size", mannequin_wight + "px " + mannequin_height + "px");
+
+            let str_recording_names = "{{recording_names}}";
+            let recording_names = str_recording_names.replace("[&#39;", "").replace("&#39;]", "").split("&#39;, &#39;");
+
+            for (let i in recording_names) {
+                $("#recording_name_0").append("<option value=" + recording_names[i] + ">" + recording_names[i] + "</option>");
+                $("#recording_name_1").append("<option value=" + recording_names[i] + ">" + recording_names[i] + "</option>");
+            }
+
             $("#submit").click(function () {
+                let marks_motion_0 = [];
+                $('.motion_0 input').each(function () {
+                    marks_motion_0.push($(this).val());
+                });
+                let json_motion_0 = JSON.stringify(marks_motion_0);
+
+                let marks_motion_1 = []
+                $('.motion_1 input').each(function () {
+                    marks_motion_1.push($(this).val());
+                });
+                let json_motion_1 = JSON.stringify(marks_motion_1);
+
+                let json_weights_groups_builder = []
+                for (let i in wights_groups) {
+                    json_weights_groups_builder.push(JSON.stringify(Object.fromEntries(wights_groups[i])));
+                }
+                let json_weights_groups = JSON.stringify(json_weights_groups_builder);
+
+                let flag_visualized_velocity = $("#flag_visualized_velocity").val();
+                let flag_heatmap = $("#flag_heatmap").val();
+                let file_name_0 = $("#recording_name_0").val();
+                let file_name_1 = $("#recording_name_1").val();
+
+
                 $.post("http://127.0.0.1:5000/result",
                     {
-                        name: "Donald Duck",
-                        city: "Duckburg"
-                    },
-                    function (data, status) {
-                        alert("Data: " + data + "\nStatus: " + status);
+                        "marks_motion_0": json_motion_0,
+                        "marks_motion_1": json_motion_1,
+                        "array_weights": json_weights_groups,
+                        "flag_visualized_velocity": flag_visualized_velocity,
+                        "flag_heatmap": flag_heatmap,
+                        "file_name_0": file_name_0,
+                        "file_name_1": file_name_1,
                     });
+                // function (data, status) {
+                //     alert("Data: " + data + "\nStatus: " + status);
+                // });
+            });
+
+            function submit() {
+                let marks_motion_0 = [];
+                $('.motion_0 input').each(function () {
+                    marks_motion_0.push($(this).val());
+                });
+
+                let marks_motion_1 = []
+                $('.motion_1 input').each(function () {
+                    marks_motion_1.push($(this).val());
+                });
+
+                let weights_groups = []
+                for (let i in wights_groups) {
+                    weights_groups.push(JSON.stringify(Object.fromEntries(wights_groups[i])));
+                }
+
+                let flag_visualized_velocity = $("#flag_visualized_velocity").val();
+                let flag_heatmap = $("#flag_heatmap").val();
+                let file_name_0 = $("#recording_name_0").val();
+                let file_name_1 = $("#recording_name_1").val();
+
+
+                $.post("http://127.0.0.1:5000/result",
+                    {
+                        "marks_motion_0": marks_motion_0,
+                        "marks_motion_1": marks_motion_1,
+                        "weights_groups": weights_groups,
+                        "flag_visualized_velocity": flag_visualized_velocity,
+                        "flag_heatmap": flag_heatmap,
+                        "file_name_0": file_name_0,
+                        "file_name_1": file_name_1,
+                    });
+            };
+
+            submit();
+
+            $("#test").click(function () {
             });
         })
 
@@ -113,28 +187,32 @@
 <body>
 
 
-<div class="container mt-3 col-md-10 ">
+<div class="container mt-3 col-md-10">
 
     <div class="row">
         <div class="col col-md-6 offset-1">
-            <button id="test" class="btn btn-primary">aaa</button>
-            <div class="form-check form-switch mt-3">
-                <input class="form-check-input" type="checkbox" id="with_visualized_velocity" value="no">
-                <label class="form-check-label" for="with_visualized_velocity">With Visualized Velocity</label>
+            <button id="test" class="btn btn-primary" value="">aaa</button>
+            <div class="row mt-3">
+                <div class="col offset-1">
+                    <label for="recording_name_0" class="form-label">Recording For Motion 0:</label>
+                    <select class="form-select recording_name_select" id="recording_name_0"> </select>
+                </div>
+                <div class="col">
+                    <label for="recording_name_1" class="form-label">Recording For Motion 1:</label>
+                    <select class="form-select recording_name_select" id="recording_name_1"> </select>
+                </div>
+                <div class="col col-md-2"></div>
             </div>
-            <div class="form-check form-switch mt-3">
-                <input class="form-check-input" type="checkbox" id="with_heatmap" value="yes" checked>
-                <label class="form-check-label" for="with_heatmap">With Heatmap</label>
-            </div>
+
             <div class="row mt-3">
                 <div class="col col-md-1">
                     <button type="button" class="btn btn-primary add" value="0">+</button>
                 </div>
-                <div class="col">
-                    <input type="number" class="form-control" placeholder="Start of Motion 0" name="motion_0">
+                <div class="col motion_0">
+                    <input type="number" class="form-control" placeholder="Start of Motion 0">
                 </div>
-                <div class="col">
-                    <input type="number" class="form-control" placeholder="Start of Motion 1" name="motion_1">
+                <div class="col motion_1">
+                    <input type="number" class="form-control" placeholder="Start of Motion 1">
                 </div>
                 <input type="number" style="display:none" id="weights_container_0"/>
                 <div class="col col-md-1">
@@ -144,14 +222,29 @@
             </div>
             <div class="row mt-3">
                 <div class="col col-md-1"></div>
-                <div class="col">
-                    <input type="number" class="form-control" placeholder="End of Motion 0" name="motion_0">
+                <div class="col motion_0">
+                    <input type="number" class="form-control" placeholder="End of Motion 0">
                 </div>
-                <div class="col">
-                    <input type="number" class="form-control" placeholder="End of Motion 1" name="motion_1">
+                <div class="col motion_1">
+                    <input type="number" class="form-control" placeholder="End of Motion 1">
                 </div>
                 <div class="col col-md-1"></div>
                 <div class="col col-md-1"></div>
+            </div>
+            <div class="row mt-3">
+                <div class="col col-md-5">
+                    <div class="form-check form-switch">
+                        <input class="form-check-input" type="checkbox" id="flag_visualized_velocity" value="no">
+                        <label class="form-check-label" for="flag_visualized_velocity">With Visualized Velocity</label>
+                    </div>
+                </div>
+                <div class="col col-md-5">
+                    <div class="form-check form-switch">
+                        <input class="form-check-input" type="checkbox" id="flag_heatmap" value="yes" checked>
+                        <label class="form-check-label" for="flag_heatmap">With Heatmap</label>
+                    </div>
+                </div>
+
             </div>
             <div class="mt-3">
                 <button id="submit" class="btn btn-primary">Submit</button>
