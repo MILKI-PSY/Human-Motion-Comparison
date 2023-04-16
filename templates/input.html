@@ -76,61 +76,7 @@
                 console.log("key:" + key + " val:" + $(this).val());
                 wights_groups[index].set(key, value);
             });
-
-            let mannequin_wight = $("#weights").width();
-            let mannequin_height = mannequin_wight * 1.364 //The resolution of the original image is 670 * 914
-            $("#weights").css("height", mannequin_height + "px");
-            $("#weights").css("background-size", mannequin_wight + "px " + mannequin_height + "px");
-
-            let str_recording_names = "{{recording_names}}";
-            let recording_names = str_recording_names.replace("[&#39;", "").replace("&#39;]", "").split("&#39;, &#39;");
-
-            for (let i in recording_names) {
-                $("#recording_name_0").append("<option value=" + recording_names[i] + ">" + recording_names[i] + "</option>");
-                $("#recording_name_1").append("<option value=" + recording_names[i] + ">" + recording_names[i] + "</option>");
-            }
-
             $("#submit").click(function () {
-                let marks_motion_0 = [];
-                $('.motion_0 input').each(function () {
-                    marks_motion_0.push($(this).val());
-                });
-                let json_motion_0 = JSON.stringify(marks_motion_0);
-
-                let marks_motion_1 = []
-                $('.motion_1 input').each(function () {
-                    marks_motion_1.push($(this).val());
-                });
-                let json_motion_1 = JSON.stringify(marks_motion_1);
-
-                let json_weights_groups_builder = []
-                for (let i in wights_groups) {
-                    json_weights_groups_builder.push(JSON.stringify(Object.fromEntries(wights_groups[i])));
-                }
-                let json_weights_groups = JSON.stringify(json_weights_groups_builder);
-
-                let flag_visualized_velocity = $("#flag_visualized_velocity").val();
-                let flag_heatmap = $("#flag_heatmap").val();
-                let file_name_0 = $("#recording_name_0").val();
-                let file_name_1 = $("#recording_name_1").val();
-
-
-                $.post("http://127.0.0.1:5000/result",
-                    {
-                        "marks_motion_0": json_motion_0,
-                        "marks_motion_1": json_motion_1,
-                        "array_weights": json_weights_groups,
-                        "flag_visualized_velocity": flag_visualized_velocity,
-                        "flag_heatmap": flag_heatmap,
-                        "file_name_0": file_name_0,
-                        "file_name_1": file_name_1,
-                    });
-                // function (data, status) {
-                //     alert("Data: " + data + "\nStatus: " + status);
-                // });
-            });
-
-            function submit() {
                 let marks_motion_0 = [];
                 $('.motion_0 input').each(function () {
                     marks_motion_0.push($(this).val());
@@ -162,17 +108,33 @@
                         "file_name_0": file_name_0,
                         "file_name_1": file_name_1,
                     });
-            };
-
-            submit();
-
+                // function (data, status) {
+                //     alert("Data: " + data + "\nStatus: " + status);
+                // });
+            });
             $("#test").click(function () {
             });
+
+
+            let mannequin_wight = $("#weights").width();
+            let mannequin_height = mannequin_wight * 1.364 //The resolution of the original image is 670 * 914
+            $("#weights").css("height", mannequin_height + "px");
+            $("#weights").css("background-size", mannequin_wight + "px " + mannequin_height + "px");
+
+            let str_recording_names = "{{recording_names}}";
+            let recording_names = str_recording_names.replace("[&#39;", "").replace("&#39;]", "").split("&#39;, &#39;");
+
+            for (let i in recording_names) {
+                $("#recording_name_0").append("<option value=" + recording_names[i] + ">" + recording_names[i] + "</option>");
+                $("#recording_name_1").append("<option value=" + recording_names[i] + ">" + recording_names[i] + "</option>");
+            }
+
+
         })
 
         window.onresize = function () {
             let mannequin_wight = $("#weights").width();
-            let mannequin_height = mannequin_wight * 1.364 //The resolution of the original image is 670 * 914
+            let mannequin_height = mannequin_wight * (670 / 914) //The resolution of the original image is 670 * 914
             $("#weights").css("height", mannequin_height + "px");
             $("#weights").css("background-size", mannequin_wight + "px " + mannequin_height + "px");
         }
@@ -191,7 +153,8 @@
 
     <div class="row">
         <div class="col col-md-6 offset-1">
-            <button id="test" class="btn btn-primary" value="">aaa</button>
+            <!--            <button id="test" class="btn btn-primary" value="">aaa</button>-->
+            <!--the names of the motions-->
             <div class="row mt-3">
                 <div class="col offset-1">
                     <label for="recording_name_0" class="form-label">Recording For Motion 0:</label>
@@ -203,7 +166,7 @@
                 </div>
                 <div class="col col-md-2"></div>
             </div>
-
+            <!--starts of motions-->
             <div class="row mt-3">
                 <div class="col col-md-1">
                     <button type="button" class="btn btn-primary add" value="0">+</button>
@@ -220,6 +183,8 @@
                 </div>
                 <div class="col col-md-1"></div>
             </div>
+            <!--the marks between start and end are dynamically added by JS-->
+            <!--ends of motions-->
             <div class="row mt-3">
                 <div class="col col-md-1"></div>
                 <div class="col motion_0">
@@ -231,6 +196,19 @@
                 <div class="col col-md-1"></div>
                 <div class="col col-md-1"></div>
             </div>
+            <!--labels of motions-->
+            <div class="row mt-3">
+                <div class="col col-md-1"></div>
+                <div class="col motion_0">
+                    <input type="number" class="form-control" placeholder="End of Motion 0">
+                </div>
+                <div class="col motion_1">
+                    <input type="number" class="form-control" placeholder="End of Motion 1">
+                </div>
+                <div class="col col-md-1"></div>
+                <div class="col col-md-1"></div>
+            </div>
+            <!--flag_visualized_velocity and flag_heatmap-->
             <div class="row mt-3">
                 <div class="col col-md-5">
                     <div class="form-check form-switch">
@@ -246,11 +224,12 @@
                 </div>
 
             </div>
+            <!--submit button-->
             <div class="mt-3">
                 <button id="submit" class="btn btn-primary">Submit</button>
             </div>
         </div>
-
+        <!--input-fields for weights-->
         <div class="col col-md-4 mt-3" id="weights"
              style="background-image: url('static/mannequin.jpg'); position: relative; padding: 0">
             <div class="weight_input" style="left: 42.4%; top:5%">
@@ -296,6 +275,7 @@
                 <input type="number" class="form-control" value="1" name="weight" id="Left Foot">
             </div>
         </div>
+
     </div>
 
 </div>

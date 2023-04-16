@@ -3,9 +3,28 @@
 <head>
     <meta charset="UTF-8">
     <title>Result</title>
+    <script src="https://cdn.staticfile.org/jquery/1.10.2/jquery.min.js"></script>
 </head>
+<script>
+    function createElementFromHTML(htmlString) {
+        let div = document.createElement('div');
+        div.innerHTML = htmlString.trim();
+
+        // Change this to div.childNodes to support multiple top-level nodes.
+        return div.firstChild;
+    }
+
+    $(document).ready(function () {
+        const node =createElementFromHTML("{{video}}");
+
+        const element = document.getElementById("video_container");
+        element.appendChild(node);
+
+    })
+</script>
 <body>
-<img src={{src}}>
-<br/>{{ my_str }}
+<div id="video_container">
+    <p>12321</p>
+</div>
 </body>
 </html>

@@ -1,6 +1,6 @@
 import matplotlib.colors as mcolors
 
-ANIMATION_SAVE_PATH = "C:\\Users\\gaoch\\MA\\Badminton weights\\gifs\\"
+ANIMATION_SAVE_PATH = "C:\\Users\\gaoch\\MA\\Saved\\"
 DATA_PATH = "C:\\Users\\gaoch\\MA\\Data\\"
 
 SIMPLIFIED_JOINTS = ["Pelvis", "Neck", "Head", "Right Upper Arm", "Right Forearm",
