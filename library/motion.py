@@ -12,9 +12,6 @@ class Motion:
         self.velocity_recording = velocity_recording
         self.label = label
         self.rotation_parameters = self.get_rotation_parameters()
-        self.weights = {}
-        for joint in SIMPLIFIED_JOINTS:
-            self.weights[joint] = 1
 
     def __len__(self):
         return len(self.position_recording)
@@ -32,7 +29,6 @@ class Motion:
         rotation_parameters = pd.DataFrame()
         rotation_parameters[["sin", "cos"]] = self.position_recording.apply(calculate_sin_cos, axis=1,
                                                                             result_type="expand")
-
         return rotation_parameters
 
     def centre(self):
@@ -60,13 +56,25 @@ class Motion:
         self.position_recording[self.position_recording.columns] = self.position_recording.apply(
             lambda x: rotate(x, series_sin[x.name], series_cos[x.name]), axis=1, result_type="expand")
 
-    def synchronized_by(self, reference_motion):
+    def synchronized_by(self, reference_motion, weights_groups, marks):
         def frame_distance(frame_0, frame_1):
+            # choose the right weights from weights_groups
+            weights = None
+            frame_number = frame_0[-1]  # the "frame_number" column is new added
+            for i in range(len(marks)):
+                if marks[i] >= frame_number:
+                    weights = weights_groups.iloc[i - 1]  # -1 because weights have the same index with the start mark
+                    break
+
+            # calculate the distance
             distance = 0
-            for i in range(0, len(frame_0), 3):  # step = 3, because 3 columns (x, y, z) for a joint
-                distance += self.weights[SIMPLIFIED_JOINTS[int(i / 3)]] * euclidean(frame_0[i:i + 3], frame_1[i:i + 3])
+            # step = 3, because 3 columns (x, y, z) for a joint, -1 because the new "frame_number" column
+            for i in range(0, len(frame_0) - 1, 3):
+                distance += weights[SIMPLIFIED_JOINTS[int(i / 3)]] * euclidean(frame_0[i:i + 3], frame_1[i:i + 3])
             return distance
 
+        reference_motion.position_recording["frame_number"] = reference_motion.position_recording.index
+        self.position_recording["frame_number"] = self.position_recording.index
         alignment = dtw(reference_motion.position_recording, self.position_recording, dist_method=frame_distance)
         synchronized_position_recording = pd.DataFrame(columns=self.position_recording.columns)
         synchronized_velocity_recording = pd.DataFrame(columns=self.velocity_recording.columns)
@@ -80,7 +88,7 @@ class Motion:
                 synchronized_velocity_recording = pd.concat(
                     [synchronized_velocity_recording,
                      self.velocity_recording.iloc[alignment.index2[step]].to_frame().T], ignore_index=True)
-        return Motion(synchronized_position_recording, velocity_recording=synchronized_velocity_recording)
+        return Motion(synchronized_position_recording, synchronized_velocity_recording, self.label)
 
 
 def get_scores(motion_0, motion_1):
@@ -100,3 +108,4 @@ def get_scores(motion_0, motion_1):
     df_joints_distances = pd.DataFrame(joints_distances)
     df_joints_distances["overall"] = df_joints_distances.apply(lambda x: x.sum(), axis=1)
     return df_joints_distances
+

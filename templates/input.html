@@ -8,7 +8,7 @@
     <script src="https://cdn.staticfile.org/jquery/1.10.2/jquery.min.js"></script>
     <script src="https://cdn.staticfile.org/twitter-bootstrap/5.1.1/js/bootstrap.bundle.min.js"></script>
     <script>
-        const SIMPLIFIED_JOINTS = ["Neck", "Head", "Right Upper Arm", "Right Forearm",
+        const SIMPLIFIED_JOINTS = ["Pelvis", "Neck", "Head", "Right Upper Arm", "Right Forearm",
             "Right Hand", "Left Upper Arm", "Left Forearm", "Left Hand",
             "Right Upper Leg", "Right Lower Leg", "Right Foot", "Left Upper Leg",
             "Left Lower Leg", "Left Foot"];
@@ -24,8 +24,8 @@
 
         $(document).ready(function () {
             let chosen_slot = "0";
-            let wights_groups = [];
-            wights_groups.push(get_default_weights());
+            let weights_groups = [];
+            weights_groups.push(get_default_weights());
 
             $(document).on("click", ".add", function () {
                 let index = Number($(this).val());
@@ -50,21 +50,21 @@
             </div>
         </div>`)
 
-                wights_groups.push(get_default_weights())
+                weights_groups.push(get_default_weights())
 
 
             })
             $(document).on("click", ".sub", function () {
                 $(this).parent().parent().remove()
                 let index = Number($(this).val())
-                wights_groups.splice(index, 1)
+                weights_groups.splice(index, 1)
             })
             $(document).on("click", ".set_weights", function () {
                 chosen_slot = $(this).val()
                 $('.weight_input input').each(function () {
                     let index = Number(chosen_slot);
                     let key = $(this).attr("id");
-                    let value = wights_groups[index].get(key);
+                    let value = weights_groups[index].get(key);
                     $(this).val(value);
 
                 });
@@ -74,7 +74,7 @@
                 let key = $(this).attr("id");
                 let value = Number($(this).val());
                 console.log("key:" + key + " val:" + $(this).val());
-                wights_groups[index].set(key, value);
+                weights_groups[index].set(key, value);
             });
             $("#submit").click(function () {
                 let marks_motion_0 = [];
@@ -87,34 +87,35 @@
                     marks_motion_1.push($(this).val());
                 });
 
-                let weights_groups = []
-                for (let i in wights_groups) {
-                    weights_groups.push(JSON.stringify(Object.fromEntries(wights_groups[i])));
+                let st_weights_groups = []
+                for (let i in weights_groups) {
+                    st_weights_groups.push(JSON.stringify(Object.fromEntries(weights_groups[i])));
                 }
 
                 let flag_visualized_velocity = $("#flag_visualized_velocity").val();
                 let flag_heatmap = $("#flag_heatmap").val();
                 let file_name_0 = $("#recording_name_0").val();
                 let file_name_1 = $("#recording_name_1").val();
+                let label_motion_0 = $("#label_motion_0").val();
+                let label_motion_1 = $("#label_motion_1").val();
 
-
-                $.post("http://127.0.0.1:5000/result",
+                $.redirectPost('http://127.0.0.1:5000/result',
                     {
-                        "marks_motion_0": marks_motion_0,
-                        "marks_motion_1": marks_motion_1,
-                        "weights_groups": weights_groups,
+                        "marks_motion_0[]": marks_motion_0,
+                        "marks_motion_1[]": marks_motion_1,
+                        "weights_groups[]": st_weights_groups,
                         "flag_visualized_velocity": flag_visualized_velocity,
                         "flag_heatmap": flag_heatmap,
                         "file_name_0": file_name_0,
                         "file_name_1": file_name_1,
-                    });
-                // function (data, status) {
-                //     alert("Data: " + data + "\nStatus: " + status);
-                // });
+                        "label_motion_0": label_motion_0,
+                        "label_motion_1": label_motion_1,
+                    }
+                );
+
             });
             $("#test").click(function () {
             });
-
 
             let mannequin_wight = $("#weights").width();
             let mannequin_height = mannequin_wight * 1.364 //The resolution of the original image is 670 * 914
@@ -128,9 +129,36 @@
                 $("#recording_name_0").append("<option value=" + recording_names[i] + ">" + recording_names[i] + "</option>");
                 $("#recording_name_1").append("<option value=" + recording_names[i] + ">" + recording_names[i] + "</option>");
             }
-
-
         })
+        $.extend({
+            redirectPost: function (location, args) {
+
+                let form = $('<form></form>');
+                form.attr("method", "post");
+                form.attr("action", location);
+
+                $.each(args, function (key, value) {
+                    if (key.includes("[]")) {
+                        for (const element of value) {
+                            let field = $('<input></input>');
+                            field.attr("type", "hidden");
+                            field.attr("name", key);
+                            field.attr("value", element);
+                            form.append(field);
+                        }
+                    } else {
+                        let field = $('<input></input>');
+                        field.attr("type", "hidden");
+                        field.attr("name", key);
+                        field.attr("value", value);
+                        form.append(field);
+                    }
+
+
+                });
+                $(form).appendTo('body').submit();
+            }
+        });
 
         window.onresize = function () {
             let mannequin_wight = $("#weights").width();
@@ -153,7 +181,7 @@
 
     <div class="row">
         <div class="col col-md-6 offset-1">
-            <!--            <button id="test" class="btn btn-primary" value="">aaa</button>-->
+            <!--<button id="test" class="btn btn-primary" value="">aaa</button>-->
             <!--the names of the motions-->
             <div class="row mt-3">
                 <div class="col offset-1">
@@ -199,11 +227,13 @@
             <!--labels of motions-->
             <div class="row mt-3">
                 <div class="col col-md-1"></div>
-                <div class="col motion_0">
-                    <input type="number" class="form-control" placeholder="End of Motion 0">
+                <div class="col">
+                    <label for="label_motion_0" class="form-label">Label of Motion 0:</label>
+                    <input type="text" id="label_motion_0" class="form-control">
                 </div>
-                <div class="col motion_1">
-                    <input type="number" class="form-control" placeholder="End of Motion 1">
+                <div class="col">
+                    <label for="label_motion_1" class="form-label">Label of Motion 1:</label>
+                    <input type="text" id="label_motion_1" class="form-control">
                 </div>
                 <div class="col col-md-1"></div>
                 <div class="col col-md-1"></div>
@@ -250,16 +280,19 @@
             <div class="weight_input" style="left: 65.5%;top: 35%">
                 <input type="number" class="form-control" value="1" name="weight" id="Left Forearm">
             </div>
-            <div class="weight_input" style="left: 19%;top: 55%">
+            <div class="weight_input" style="left: 18%;top: 55%">
                 <input type="number" class="form-control" value="1" name="weight" id="Right Hand">
             </div>
-            <div class="weight_input" style="left: 66%;top: 55%">
+            <div class="weight_input" style="left: 67%;top: 55%">
                 <input type="number" class="form-control" value="1" name="weight" id="Left Hand">
             </div>
-            <div class="weight_input" style="left: 33%;top: 47%">
+            <div class="weight_input" style="left: 34%;top: 52%">
                 <input type="number" class="form-control" value="1" name="weight" id="Right Upper Leg">
             </div>
-            <div class="weight_input" style="left: 52%;top: 47%">
+            <div class="weight_input" style="left: 42.4%;top: 45%">
+                <input type="number" class="form-control" value="1" name="weight" id="Pelvis">
+            </div>
+            <div class="weight_input" style="left: 51%;top: 52%">
                 <input type="number" class="form-control" value="1" name="weight" id="Left Upper Leg">
             </div>
             <div class="weight_input" style="left: 33.5%;top: 68%">

@@ -3,6 +3,10 @@ import matplotlib.colors as mcolors
 ANIMATION_SAVE_PATH = "C:\\Users\\gaoch\\MA\\Saved\\"
 DATA_PATH = "C:\\Users\\gaoch\\MA\\Data\\"
 
+POSITION_RECORDING_NAME = "Segment Position"
+VELOCITY_RECORDING_NAME = "Segment Angular Velocity"
+SHEET_NAMES = [POSITION_RECORDING_NAME, VELOCITY_RECORDING_NAME]
+
 SIMPLIFIED_JOINTS = ["Pelvis", "Neck", "Head", "Right Upper Arm", "Right Forearm",
                      "Right Hand", "Left Upper Arm", "Left Forearm", "Left Hand",
                      "Right Upper Leg", "Right Lower Leg", "Right Foot", "Left Upper Leg",

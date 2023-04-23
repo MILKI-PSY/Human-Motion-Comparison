@@ -1,33 +1,35 @@
 <!DOCTYPE html>
 <html>
 <head>
-  <title>Bootstrap5 实例</title>
-  <meta charset="utf-8">
-  <meta name="viewport" content="width=device-width, initial-scale=1">
-  <link href="https://cdn.staticfile.org/twitter-bootstrap/5.1.1/css/bootstrap.min.css" rel="stylesheet">
-  <script src="https://cdn.staticfile.org/twitter-bootstrap/5.1.1/js/bootstrap.bundle.min.js"></script>
+    <title>Bootstrap5 实例</title>
+    <meta charset="utf-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1">
+    <link href="https://cdn.staticfile.org/twitter-bootstrap/5.1.1/css/bootstrap.min.css" rel="stylesheet">
+    <script src="https://cdn.staticfile.org/twitter-bootstrap/5.1.1/js/bootstrap.bundle.min.js"></script>
+    <script>
+        var redirect = 'http://127.0.0.1:5000/result';
+        $.redirectPost(redirect, {x: 'example', y: 'abc'});
+        $.extend(
+            {
+                redirectPost: function (location, args) {
+                    var form = '';
+                    $.each(args, function (key, value) {
+                        form += '<input type="hidden" name="' + key + '" value="' + value + '">';
+                    });
+                    $('<form action="' + location + '" method="POST">' + form + '</form>').appendTo('body').submit();
+                }
+            }
+        );
+    </script>
+
 </head>
 <body>
-
-<div class="container mt-3">
-  <h2>堆叠表单</h2>
-	<form action="">
-	  <div class="mb-3 mt-3">
-		<label for="email" class="form-label">Email:</label>
-		<input type="email" class="form-control" id="email" placeholder="Enter email" name="email">
-	  </div>
-	  <div class="mb-3">
-		<label for="pwd" class="form-label">Password:</label>
-		<input type="password" class="form-control" id="pwd" placeholder="Enter password" name="pswd">
-	  </div>
-	  <div class="form-check mb-3">
-		<label class="form-check-label">
-		  <input class="form-check-input" type="checkbox" name="remember"> Remember me
-		</label>
-	  </div>
-	  <button type="submit" class="btn btn-primary">Submit</button>
-	</form>
-</div>
-
+<form action="http://localhost:5000/result" method="POST">
+    <p>Name <input type="text" name="Name"/></p>
+    <p>Physics <input type="text" name="Physics"/></p>
+    <p>Chemistry <input type="text" name="chemistry"/></p>
+    <p>Maths <input type="text" name="Mathematics"/></p>
+    <p><input type="submit" value="submit"/></p>
+</form>
 </body>
 </html>

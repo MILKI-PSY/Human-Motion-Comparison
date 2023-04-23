@@ -1,7 +1,7 @@
 import matplotlib.pyplot as plt
 from matplotlib.animation import FuncAnimation, PillowWriter
 from constants import *
-
+import library.motion as mt
 from matplotlib.widgets import Button
 import numpy as np
 
@@ -21,17 +21,17 @@ class Character:
 
 
 class Animation:
-    def __init__(self, motions, scores=None, flag_visualized_velocities=False, flag_repeat=False, flag_heatmap=False):
+    def __init__(self, motions, flag_visualized_velocities=False, flag_repeat=False, flag_heatmap=False):
         self.is_paused = False
         self.flag_visualized_velocities = flag_visualized_velocities
         self.flag_repeat = flag_repeat
         self.flag_heatmap = flag_heatmap
-        self.scores = scores
-        self.color_generator = self.get_color_generator()
+        if len(motions) == 2 and flag_heatmap:
+            self.scores = mt.get_scores(motions[0], motions[1])
+        self.color_generator = get_color_generator()
 
         self.fig = plt.figure()
         self.fig.subplots_adjust(bottom=0.2)
-
         if self.flag_heatmap:
             self.ax_heatmap = self.fig.add_subplot(1, 2, 2)
             self.ax_heatmap.set_aspect(1)
@@ -113,6 +113,10 @@ class Animation:
         writer = PillowWriter(fps=30)
         self.ani.save(ANIMATION_SAVE_PATH + name + ".gif", writer=writer)
 
-    def get_color_generator(self):
-        for color in COLOR_POOL:
-            yield color
+    def to_html5_video(self):
+        return self.ani.to_html5_video()
+
+
+def get_color_generator():
+    for color in COLOR_POOL:
+        yield color
