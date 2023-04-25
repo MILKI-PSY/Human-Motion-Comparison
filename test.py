@@ -15,26 +15,27 @@ import numpy as np
 import matplotlib.pyplot as plt
 from matplotlib.animation import FuncAnimation
 
-app = Flask(__name__)
-
-@app.route("/")
-def hello():
-    t = np.linspace(0, 2 * np.pi)
-    x = np.sin(t)
-
-    fig, ax = plt.subplots()
-    ax.axis([0, 2 * np.pi, -1, 1])
-    l, = ax.plot([], [])
-
-    def animate(i):
-        l.set_data(t[:i], x[:i])
-
-    ani = FuncAnimation(fig, animate, frames=len(t))
-
-    return ani.to_html5_video()
-
-    # render_template("result.html", video="<p>12321</p>")
-
+from library.input_output import *
+from library.animation import *
 
 if __name__ == '__main__':
-    app.run()
+    marks_motion_0 = [7600, 7850]
+    marks_motion_1 = [9300, 9800]
+
+    file_name_0 = "P01_B_cut"
+    file_name_1 = "P01_B_cut"
+
+    motion_0 = get_motion(file_name_0, marks_motion_0[0], marks_motion_0[-1])
+    motion_1 = get_motion(file_name_1, marks_motion_1[0], marks_motion_1[-1])
+
+    motion_0.centre().confront()
+    motion_1.centre().confront()
+
+    weight = {}
+    for joint in SIMPLIFIED_JOINTS:
+        weight[joint] = 1
+
+    weights_groups = pd.DataFrame([weight])
+
+    synced_motion_1 = motion_1.synchronized_by(motion_0, weights_groups, marks_motion_0)
+    ani = Animation([motion_0, synced_motion_1], False, True, True, )

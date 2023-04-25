@@ -1,5 +1,5 @@
 import matplotlib.pyplot as plt
-from matplotlib.animation import FuncAnimation, PillowWriter
+from matplotlib.animation import FuncAnimation
 from constants import *
 import library.motion as mt
 from matplotlib.widgets import Button
@@ -25,11 +25,14 @@ class Animation:
         self.is_paused = False
         self.flag_visualized_velocities = flag_visualized_velocities
         self.flag_repeat = flag_repeat
-        self.flag_heatmap = flag_heatmap
         if len(motions) == 2 and flag_heatmap:
             self.scores = mt.get_scores(motions[0], motions[1])
-        self.color_generator = get_color_generator()
+            self.flag_heatmap = True
+        else:
+            self.flag_heatmap = False
 
+        if DEBUG_INFO: print("start generating the animation")
+        self.color_generator = get_color_generator()
         self.fig = plt.figure()
         self.fig.subplots_adjust(bottom=0.2)
         if self.flag_heatmap:
@@ -39,13 +42,12 @@ class Animation:
             self.ax_heatmap.set_xlim(-1, 1)
             self.ax_heatmap.set_ylim(-1, 1)
             joint_positions = np.array(HEATMAP_JOINT_POSITION)
-            self.heatmap = self.ax_heatmap.scatter(joint_positions[:, 0], joint_positions[:, 1], s=200, vmin=0, vmax=1,
-                                                   c=np.zeros(len(HEATMAP_JOINT_POSITION)), cmap="Reds")
-
+            self.heatmap = self.ax_heatmap.scatter(joint_positions[:, 0], joint_positions[:, 1], s=200,
+                                                   vmin=MINIMUM_SCORE, vmax=MAXIMUM_SCORE,
+                                                   c=np.zeros(len(HEATMAP_JOINT_POSITION)), cmap=COLOR_MAP)
             self.ax_motions = self.fig.add_subplot(1, 2, 1, projection="3d")
         else:
             self.ax_motions = self.fig.add_subplot(1, 1, 1, projection="3d")
-
         self.ax_motions.set(xlim3d=(-1, 1), xlabel='X')
         self.ax_motions.set(ylim3d=(-1, 1), ylabel='Y')
         self.ax_motions.set(zlim3d=(-1, 1), zlabel='Z')
@@ -59,9 +61,6 @@ class Animation:
 
         self.button = Button(self.fig.add_axes([0.81, 0.05, 0.1, 0.075]), 'stop')
         self.button.on_clicked(self.toggle_pause)
-
-    def set_flag_visualized_velocities(self, value):
-        self.flag_visualized_velocities = value
 
     def update(self, index):
         def update_skeleton():
@@ -109,11 +108,8 @@ class Animation:
             self.ani.pause()
         self.is_paused = not self.is_paused
 
-    def save_as_gif(self, name):
-        writer = PillowWriter(fps=30)
-        self.ani.save(ANIMATION_SAVE_PATH + name + ".gif", writer=writer)
-
     def to_html5_video(self):
+        if DEBUG_INFO: print("start converting the output to html5 video")
         return self.ani.to_html5_video()
 
 

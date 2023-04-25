@@ -7,6 +7,12 @@ POSITION_RECORDING_NAME = "Segment Position"
 VELOCITY_RECORDING_NAME = "Segment Angular Velocity"
 SHEET_NAMES = [POSITION_RECORDING_NAME, VELOCITY_RECORDING_NAME]
 
+DEBUG_INFO = True
+MINIMUM_VELOCITY = 1
+MINIMUM_SCORE = 0
+MAXIMUM_SCORE = 2
+COLOR_MAP = "Reds"
+
 SIMPLIFIED_JOINTS = ["Pelvis", "Neck", "Head", "Right Upper Arm", "Right Forearm",
                      "Right Hand", "Left Upper Arm", "Left Forearm", "Left Hand",
                      "Right Upper Leg", "Right Lower Leg", "Right Foot", "Left Upper Leg",

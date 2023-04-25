@@ -1,6 +1,5 @@
 import numpy as np
 import pandas as pd
-import math
 from dtw import *
 from scipy.spatial.distance import euclidean
 from constants import *
@@ -11,7 +10,6 @@ class Motion:
         self.position_recording = position_recording
         self.velocity_recording = velocity_recording
         self.label = label
-        self.rotation_parameters = self.get_rotation_parameters()
 
     def __len__(self):
         return len(self.position_recording)
@@ -19,19 +17,8 @@ class Motion:
     def __gt__(self, other):
         return len(self) > len(other)
 
-    def get_rotation_parameters(self):
-        def calculate_sin_cos(position_frame):
-            opposite = position_frame["Left Upper Arm y"] - position_frame["Right Upper Arm y"]
-            adjacent = position_frame["Left Upper Arm x"] - position_frame["Right Upper Arm x"]
-            hypotenuse = math.sqrt(adjacent ** 2 + opposite ** 2)
-            return opposite / hypotenuse, adjacent / hypotenuse
-
-        rotation_parameters = pd.DataFrame()
-        rotation_parameters[["sin", "cos"]] = self.position_recording.apply(calculate_sin_cos, axis=1,
-                                                                            result_type="expand")
-        return rotation_parameters
-
     def centre(self):
+        if DEBUG_INFO: print("start placing " + self.label + " in the centre")
         columns_with_x = self.position_recording.columns[self.position_recording.columns.str.contains("x")]
         columns_with_y = self.position_recording.columns[self.position_recording.columns.str.contains("y")]
         columns_with_z = self.position_recording.columns[self.position_recording.columns.str.contains("z")]
@@ -41,6 +28,7 @@ class Motion:
             self.position_recording["Pelvis y"], axis='index')
         self.position_recording[columns_with_z] = self.position_recording[columns_with_z].sub(
             self.position_recording["Pelvis z"], axis='index')
+
         return self
 
     def confront(self):
@@ -51,10 +39,17 @@ class Motion:
                     = np.dot(rotation_matrix, frame[[joint + " x", joint + " y", joint + " z"]]).T
             return frame
 
-        series_sin = self.rotation_parameters["sin"]
-        series_cos = self.rotation_parameters["cos"]
+        if DEBUG_INFO: print("start rotating " + self.label + " to positive direction")
+        opposite = self.position_recording["Left Upper Arm y"] - self.position_recording["Right Upper Arm y"]
+        adjacent = self.position_recording["Left Upper Arm x"] - self.position_recording["Right Upper Arm x"]
+        hypotenuse = np.sqrt(np.square(opposite) + np.square(adjacent))
+        series_sin = opposite / hypotenuse
+        series_cos = adjacent / hypotenuse
+
         self.position_recording[self.position_recording.columns] = self.position_recording.apply(
             lambda x: rotate(x, series_sin[x.name], series_cos[x.name]), axis=1, result_type="expand")
+
+        return self
 
     def synchronized_by(self, reference_motion, weights_groups, marks):
         def frame_distance(frame_0, frame_1):
@@ -72,6 +67,8 @@ class Motion:
             for i in range(0, len(frame_0) - 1, 3):
                 distance += weights[SIMPLIFIED_JOINTS[int(i / 3)]] * euclidean(frame_0[i:i + 3], frame_1[i:i + 3])
             return distance
+
+        if DEBUG_INFO: print("start synchronizing " + self.label + " by " + reference_motion.label)
 
         reference_motion.position_recording["frame_number"] = reference_motion.position_recording.index
         self.position_recording["frame_number"] = self.position_recording.index
@@ -92,20 +89,25 @@ class Motion:
 
 
 def get_scores(motion_0, motion_1):
-    def vector_euclidean(arr_0, arr_1):
-        return np.sqrt(np.sum(np.square(arr_0 - arr_1), axis=1))
+    def vector_euclidean(vec_0, vec_1):
+        return np.sqrt(np.sum(np.square(vec_0 - vec_1), axis=1))
+
+    def vector_module(vec):
+        return np.sqrt(np.sum(np.square(vec), axis=1))
+
+    if DEBUG_INFO: print("start calculating the score of " + motion_0.label + " and " + motion_1.label)
 
     recording_0 = motion_0.velocity_recording
     recording_1 = motion_1.velocity_recording
-
-    joints_distances = {}
+    joints_scores = {}
     for index, joint in enumerate(SIMPLIFIED_JOINTS):
         low = index * 3
         upp = index * 3 + 3
-        joints_distances[joint] = vector_euclidean(recording_0.iloc[:, low:upp].values,
-                                                   recording_1.iloc[:, low:upp].values)
+        joint_distance = vector_euclidean(recording_0.iloc[:, low:upp].values, recording_1.iloc[:, low:upp].values)
+        module = vector_module(recording_0.iloc[:, low:upp].values)
+        module[module < MINIMUM_VELOCITY] = MINIMUM_VELOCITY
+        joints_scores[joint] = joint_distance / module
 
-    df_joints_distances = pd.DataFrame(joints_distances)
-    df_joints_distances["overall"] = df_joints_distances.apply(lambda x: x.sum(), axis=1)
-    return df_joints_distances
-
+    df_joints_scores = pd.DataFrame(joints_scores)
+    df_joints_scores["overall"] = df_joints_scores.apply(lambda x: x.sum(), axis=1)
+    return df_joints_scores
