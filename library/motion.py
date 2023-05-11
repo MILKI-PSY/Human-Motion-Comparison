@@ -2,57 +2,77 @@ import numpy as np
 import pandas as pd
 from dtw import *
 from scipy.spatial.distance import euclidean
-from constants import *
+from library.constants import *
+from library.comparison import *
+from typing import List, Dict
+
+
+class MetaData:
+    def __init__(self, file_name: str, start: int, end: int, label: str,
+                 recording_types: List[str] = RECORDING_TYPES) -> None:
+        self.file_name = file_name
+        self.start = start
+        self.end = end
+        self.label = label
+        self.recording_types = recording_types
 
 
 class Motion:
-    def __init__(self, position_recording, velocity_recording=None, label="No Label"):
-        self.position_recording = position_recording
-        self.velocity_recording = velocity_recording
-        self.label = label
+    recordings: Dict[str, pd.DataFrame]
+    meta: MetaData
 
-    def __len__(self):
-        return len(self.position_recording)
+    def __init__(self, recordings: Dict[str, pd.DataFrame], meta: MetaData) -> None:
+        self.recordings = recordings
+        self.meta = meta
 
-    def __gt__(self, other):
+    def __len__(self) -> int:
+        return self.meta.end - self.meta.start
+
+    def __gt__(self, other) -> bool:
         return len(self) > len(other)
 
-    def centre(self):
-        if DEBUG_INFO: print("start placing " + self.label + " in the centre")
-        columns_with_x = self.position_recording.columns[self.position_recording.columns.str.contains("x")]
-        columns_with_y = self.position_recording.columns[self.position_recording.columns.str.contains("y")]
-        columns_with_z = self.position_recording.columns[self.position_recording.columns.str.contains("z")]
-        self.position_recording[columns_with_x] = self.position_recording[columns_with_x].sub(
-            self.position_recording["Pelvis x"], axis='index')
-        self.position_recording[columns_with_y] = self.position_recording[columns_with_y].sub(
-            self.position_recording["Pelvis y"], axis='index')
-        self.position_recording[columns_with_z] = self.position_recording[columns_with_z].sub(
-            self.position_recording["Pelvis z"], axis='index')
+    def centre(self) -> "Motion":
+        need_centre_recordings = set(self.meta.recording_types).intersection(NEED_CENTRE_RECORDING_TYPES)
+        for recording_name in need_centre_recordings:
+            if DEBUG_INFO: print("placing " + self.meta.label + " in the centre")
+            recording = self.recordings[recording_name]
+            columns = recording.columns
+            columns_with_x = columns[columns.str.contains("x")]
+            columns_with_y = columns[columns.str.contains("y")]
+            columns_with_z = columns[columns.str.contains("z")]
+            recording[columns_with_x] = recording[columns_with_x].sub(recording["Pelvis x"], axis='index')
+            recording[columns_with_y] = recording[columns_with_y].sub(recording["Pelvis y"], axis='index')
+            recording[columns_with_z] = recording[columns_with_z].sub(recording["Pelvis z"], axis='index')
 
         return self
 
-    def confront(self):
-        def rotate(frame, sin, cos):
+    def confront(self) -> "Motion":
+        def rotate(frame: pd.Series, sin: float, cos: float):
             rotation_matrix = np.array([[cos, sin, 0], [-sin, cos, 0], [0, 0, 1]])
             for joint in SIMPLIFIED_JOINTS:
                 frame[[joint + " x", joint + " y", joint + " z"]] \
                     = np.dot(rotation_matrix, frame[[joint + " x", joint + " y", joint + " z"]]).T
             return frame
 
-        if DEBUG_INFO: print("start rotating " + self.label + " to positive direction")
-        opposite = self.position_recording["Left Upper Arm y"] - self.position_recording["Right Upper Arm y"]
-        adjacent = self.position_recording["Left Upper Arm x"] - self.position_recording["Right Upper Arm x"]
-        hypotenuse = np.sqrt(np.square(opposite) + np.square(adjacent))
-        series_sin = opposite / hypotenuse
-        series_cos = adjacent / hypotenuse
+        if DEBUG_INFO: print("rotating " + self.meta.label + " to positive direction")
 
-        self.position_recording[self.position_recording.columns] = self.position_recording.apply(
-            lambda x: rotate(x, series_sin[x.name], series_cos[x.name]), axis=1, result_type="expand")
+        need_confront_recordings = set(self.recordings.keys()).intersection(NEED_CONFRONT_RECORDING_TYPES)
+        if need_confront_recordings:
+            position_recording = self.recordings[RECORDING_FOR_SKELETON]
+            opposite = position_recording["Left Upper Arm y"] - position_recording["Right Upper Arm y"]
+            adjacent = position_recording["Left Upper Arm x"] - position_recording["Right Upper Arm x"]
+            hypotenuse = np.sqrt(np.square(opposite) + np.square(adjacent))
+            series_sin = opposite / hypotenuse
+            series_cos = adjacent / hypotenuse
 
+        for recording_name in need_confront_recordings:
+            recording = self.recordings[recording_name]
+            recording[recording.columns] = recording.apply(lambda x: rotate(x, series_sin[x.name], series_cos[x.name]),
+                                                           axis=1, result_type="expand")
         return self
 
-    def synchronized_by(self, reference_motion, weights_groups, marks):
-        def frame_distance(frame_0, frame_1):
+    def synchronized_by(self, reference_motion: "Motion", weights_groups: pd.DataFrame, marks: List[int]) -> "Motion":
+        def frame_distance(frame_0: np.ndarray, frame_1: np.ndarray) -> float:
             # choose the right weights from weights_groups
             weights = None
             frame_number = frame_0[-1]  # the "frame_number" column is new added
@@ -68,46 +88,57 @@ class Motion:
                 distance += weights[SIMPLIFIED_JOINTS[int(i / 3)]] * euclidean(frame_0[i:i + 3], frame_1[i:i + 3])
             return distance
 
-        if DEBUG_INFO: print("start synchronizing " + self.label + " by " + reference_motion.label)
+        if DEBUG_INFO: print("synchronizing " + self.meta.label + " by " + reference_motion.meta.label)
 
-        reference_motion.position_recording["frame_number"] = reference_motion.position_recording.index
-        self.position_recording["frame_number"] = self.position_recording.index
-        alignment = dtw(reference_motion.position_recording, self.position_recording, dist_method=frame_distance)
-        synchronized_position_recording = pd.DataFrame(columns=self.position_recording.columns)
-        synchronized_velocity_recording = pd.DataFrame(columns=self.velocity_recording.columns)
-        i = -1
+        reference_recording = reference_motion.recordings[RECORDING_FOR_SKELETON]
+        self_recording = self.recordings[RECORDING_FOR_SKELETON]
+
+        reference_recording["frame_number"] = reference_recording.index
+        self_recording["frame_number"] = self_recording.index
+        alignment = dtw(reference_recording, self_recording, dist_method=frame_distance)
+
+        synchronized_recordings = {}
+        columns = self_recording.columns
+        for recording_name in self.recordings.keys():
+            synchronized_recordings[recording_name] = pd.DataFrame(columns=columns)
+
+        reference_time = -1
         for step in range(len(alignment.index1)):
-            if i != alignment.index1[step]:
-                i = alignment.index1[step]
-                synchronized_position_recording = pd.concat(
-                    [synchronized_position_recording,
-                     self.position_recording.iloc[alignment.index2[step]].to_frame().T], ignore_index=True)
-                synchronized_velocity_recording = pd.concat(
-                    [synchronized_velocity_recording,
-                     self.velocity_recording.iloc[alignment.index2[step]].to_frame().T], ignore_index=True)
-        return Motion(synchronized_position_recording, synchronized_velocity_recording, self.label)
+            index_1 = alignment.index1[step]
+            index_2 = alignment.index2[step]
+            if reference_time != index_1:
+                reference_time = index_1
+                for recording_name in self.recordings.keys():
+                    synchronized_recordings[recording_name] = pd.concat(
+                        [synchronized_recordings[recording_name],
+                         self.recordings[recording_name][index_2: index_2 + 1][:]
+                         ], ignore_index=True)
+        self.recordings = synchronized_recordings
 
+        return self
 
-def get_scores(motion_0, motion_1):
-    def vector_euclidean(vec_0, vec_1):
-        return np.sqrt(np.sum(np.square(vec_0 - vec_1), axis=1))
+    def get_body_size(self) -> Dict[str, float]:
+        frame = self.recordings[RECORDING_FOR_SKELETON][0:1]  # because the body size wouldn't change
+        body_size = {}
+        for joint_connection in SKELETON_CONNECTION_MAP:
+            columns = []
+            for joint in joint_connection:
+                columns_for_joint = []
+                for axis in AXIS:
+                    columns_for_joint.append(joint + axis)
+                columns.append(columns_for_joint)
+            body_size[joint_connection[0]] = vector_euclidean(frame[columns[0]].values, frame[columns[1]].values)
+        return body_size
 
-    def vector_module(vec):
-        return np.sqrt(np.sum(np.square(vec), axis=1))
-
-    if DEBUG_INFO: print("start calculating the score of " + motion_0.label + " and " + motion_1.label)
-
-    recording_0 = motion_0.velocity_recording
-    recording_1 = motion_1.velocity_recording
-    joints_scores = {}
-    for index, joint in enumerate(SIMPLIFIED_JOINTS):
-        low = index * 3
-        upp = index * 3 + 3
-        joint_distance = vector_euclidean(recording_0.iloc[:, low:upp].values, recording_1.iloc[:, low:upp].values)
-        module = vector_module(recording_0.iloc[:, low:upp].values)
-        module[module < MINIMUM_VELOCITY] = MINIMUM_VELOCITY
-        joints_scores[joint] = joint_distance / module
-
-    df_joints_scores = pd.DataFrame(joints_scores)
-    df_joints_scores["overall"] = df_joints_scores.apply(lambda x: x.sum(), axis=1)
-    return df_joints_scores
+    def get_angular_vector(self, recording_name: str) -> pd.DataFrame:
+        body_size = self.get_body_size()
+        original_recording = VECTORS_ANGULATION_MAP[recording_name]
+        vector = self.recordings[original_recording]
+        angular_vector = pd.DataFrame()
+        for joint_connection in SKELETON_CONNECTION_MAP:
+            endpoint_0 = joint_connection[0]
+            endpoint_1 = joint_connection[1]
+            for axis in AXIS:
+                key = (joint_connection[0], joint_connection[1], axis)
+                angular_vector[key] = (vector[endpoint_1 + axis] - vector[endpoint_0 + axis]) / body_size[endpoint_0]
+        return angular_vector
