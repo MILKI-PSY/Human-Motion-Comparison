@@ -1,6 +1,7 @@
 import numpy as np
 import pandas as pd
 from library.constants import *
+from typing import List
 
 
 def vector_module(vec):
@@ -23,17 +24,32 @@ def get_distances(recording_0, recording_1):
     return df_joints_distances
 
 
-def get_scores(recording_0, recording_1):
+def get_scores(recording_0, recording_1, frame_wise_weights=None):
     joints_scores = {}
     for index, joint in enumerate(SIMPLIFIED_JOINTS):
         low = index * 3
         upp = index * 3 + 3
+        if frame_wise_weights is None:
+            weights = 1
+        else:
+            weights = frame_wise_weights[joint].astype(float)
         joint_distance = vector_euclidean(recording_0.iloc[:, low:upp].values,
                                           recording_1.iloc[:, low:upp].values)
         module = vector_module(recording_0.iloc[:, low:upp].values)
         module[module < MINIMUM_VELOCITY] = MINIMUM_VELOCITY
-        joints_scores[joint] = joint_distance / module
+        joints_scores[joint] = joint_distance * weights / module
 
     df_joints_scores = pd.DataFrame(joints_scores)
     df_joints_scores["Overall"] = df_joints_scores.apply(lambda x: x.sum(), axis=1)
     return df_joints_scores
+
+
+def get_frame_wise_weights(weights_groups: pd.DataFrame, marks: List) -> pd.DataFrame:
+    frame_wise_weights = pd.DataFrame(columns=weights_groups.columns)
+    for i in range(len(marks) - 1):
+        start = marks[i]
+        end = marks[i + 1]
+        weights = weights_groups[i:i + 1]
+        for frame_number in range(start, end):
+            frame_wise_weights = pd.concat([frame_wise_weights, weights], ignore_index=True)
+    return frame_wise_weights

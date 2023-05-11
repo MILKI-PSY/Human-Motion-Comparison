@@ -23,7 +23,7 @@ def get_motions(motions_meta: List[mt.MetaData], input_types: List[str]) -> List
     return motions
 
 
-def export_distances(motions: List[mt.Motion], output_types: List[str]) -> None:
+def export_distances(motions: List[mt.Motion], output_types: List[str], frame_wise_wights) -> None:
     if len(motions) != 2:
         raise Exception("In order to calculate the distance to the output, the motions length must be 2")
     result = {}
@@ -31,7 +31,7 @@ def export_distances(motions: List[mt.Motion], output_types: List[str]) -> None:
         if output_type == "Score":
             if DEBUG_INFO: print("calculating the Score")
             result["Score"] = get_scores(motions[0].recordings[RECORDING_FOR_SCORE],
-                                         motions[1].recordings[RECORDING_FOR_SCORE])
+                                         motions[1].recordings[RECORDING_FOR_SCORE], frame_wise_wights)
         else:
             if DEBUG_INFO: print("calculating the distance of " + output_type)
             result[output_type] = get_distances(motions[0].recordings[output_type],
@@ -42,7 +42,6 @@ def export_distances(motions: List[mt.Motion], output_types: List[str]) -> None:
     with pd.ExcelWriter(all_path) as writer:
         for output_type in output_types:
             result[output_type].to_excel(writer, sheet_name=output_type, index=False)
-
 
 # def get_recording_types(output_types: List[str], animation_settings: anmtn.Setting) -> List[str]:
 #     input_types: List[str] = []

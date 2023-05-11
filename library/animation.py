@@ -32,12 +32,14 @@ class Character:
 
 class Setting:
     def __init__(self, flag_visualized_vector: bool = False, flag_heatmap: bool = False, flag_repeat: bool = True,
-                 visualized_vector: str = "Segment Velocity", heatmap_recording: str = "Score"):
+                 visualized_vector: str = "Segment Velocity", heatmap_recording: str = "Score",
+                 frame_wise_weights=None):
         self.flag_visualized_vector = flag_visualized_vector
         self.flag_heatmap = flag_heatmap
         self.flag_repeat = flag_repeat
         self.visualized_vector = visualized_vector
         self.heatmap_recording = heatmap_recording
+        self.frame_wise_weights = frame_wise_weights
 
 
 class Animation:
@@ -51,7 +53,8 @@ class Animation:
 
         if len(motions) == 2 and self.setting.flag_heatmap:
             self.scores = get_scores(motions[0].recordings[RECORDING_FOR_SCORE],
-                                     motions[1].recordings[RECORDING_FOR_SCORE])
+                                     motions[1].recordings[RECORDING_FOR_SCORE],
+                                     setting.frame_wise_weights)
             self.ax_heatmap = self.fig.add_subplot(1, 2, 2)
             self.ax_heatmap.set_aspect(1)
             self.ax_heatmap.set_axis_off()
@@ -115,7 +118,7 @@ class Animation:
                 joint_velocity.set_3d_properties(new_vectors[" z"])
 
         def update_heatmap() -> None:
-            self.heatmap.set_array(self.scores.iloc[index][:-1])  # -1 because the last element is overall
+            self.heatmap.set_array(self.scores.iloc[index][:-1])
 
         for character in self.characters:
             if index < len(character):

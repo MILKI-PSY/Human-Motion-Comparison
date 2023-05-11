@@ -26,7 +26,7 @@ class Motion:
         self.meta = meta
 
     def __len__(self) -> int:
-        return self.meta.end - self.meta.start
+        return len(self.recordings[RECORDING_FOR_SKELETON])
 
     def __gt__(self, other) -> bool:
         return len(self) > len(other)
@@ -71,21 +71,11 @@ class Motion:
                                                            axis=1, result_type="expand")
         return self
 
-    def synchronized_by(self, reference_motion: "Motion", weights_groups: pd.DataFrame, marks: List[int]) -> "Motion":
+    def synchronized_by(self, reference_motion: "Motion") -> "Motion":
         def frame_distance(frame_0: np.ndarray, frame_1: np.ndarray) -> float:
-            # choose the right weights from weights_groups
-            weights = None
-            frame_number = frame_0[-1]  # the "frame_number" column is new added
-            for i in range(len(marks)):
-                if marks[i] >= frame_number:
-                    weights = weights_groups.iloc[i - 1]  # -1 because weights have the same index with the start mark
-                    break
-
-            # calculate the distance
             distance = 0
-            # step = 3, because 3 columns (x, y, z) for a joint, -1 because the new "frame_number" column
-            for i in range(0, len(frame_0) - 1, 3):
-                distance += weights[SIMPLIFIED_JOINTS[int(i / 3)]] * euclidean(frame_0[i:i + 3], frame_1[i:i + 3])
+            for i in range(0, len(frame_0), len(AXIS)):
+                distance += euclidean(frame_0[i:i + 3], frame_1[i:i + 3])
             return distance
 
         if DEBUG_INFO: print("synchronizing " + self.meta.label + " by " + reference_motion.meta.label)
@@ -93,8 +83,6 @@ class Motion:
         reference_recording = reference_motion.recordings[RECORDING_FOR_SKELETON]
         self_recording = self.recordings[RECORDING_FOR_SKELETON]
 
-        reference_recording["frame_number"] = reference_recording.index
-        self_recording["frame_number"] = self_recording.index
         alignment = dtw(reference_recording, self_recording, dist_method=frame_distance)
 
         synchronized_recordings = {}
