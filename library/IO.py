@@ -1,27 +1,115 @@
 import pandas as pd
 import library.motion as mt
-import comparison as cp
-from constants import *
-from typing import List, Dict
+import library.comparison as cp
+from library.animation import Animation, AnimationSetting
+from library.constants import *
+from typing import List, Dict, Optional
 
 
-def get_motions(motions_meta: List[mt.MetaData], input_types: List[str]) -> List[mt.Motion]:
-    motions: List[mt.Motion] = []
-    current_file: str = ""
-    motion_data: Dict[str, pd.DataFrame] = {}
-    for meta_data in motions_meta:
-        if DEBUG_INFO: print("generating " + meta_data.label + " from " + meta_data.file_name)
-        if current_file != meta_data.file_name:
-            current_file = meta_data.file_name
-            all_path: str = INPUT_FOLDER + meta_data.file_name + "\\data.xlsx"
-            motion_data = pd.read_excel(all_path, sheet_name=input_types, usecols=USED_COLUMNS)
+class XlsxSetting:
+    def __init__(self, output_types: List[str], xlsx_filename: str):
+        self.output_types = output_types
+        self.xlsx_filename = xlsx_filename
 
-        motion_data_cut: Dict[str, pd.DataFrame] = {}
-        for recording_type in input_types:
-            motion_data_cut[recording_type] = motion_data[recording_type][meta_data.start:meta_data.end]
-        motions.append(mt.Motion(motion_data_cut, meta_data))
 
-    return motions
+class InputSetting:
+    def __init__(self, motions_meta: List[mt.MetaData], input_types: List[str]):
+        self.motions_meta = motions_meta
+        self.input_types = input_types
+
+
+class MyIO:
+    def __init__(self, flag_output_xlsx: bool, flag_show_animation: bool, flag_output_gif: bool,
+                 xlsx_settings: Optional[XlsxSetting], animation_settings: Optional[AnimationSetting],
+                 motions_meta: List[mt.MetaData]):
+        self.flag_output_xlsx = flag_output_xlsx
+        if self.flag_output_xlsx:
+            if xlsx_settings is None:
+                raise Exception("Without Xlsx Setting")
+            else:
+                self.xlsx_settings = xlsx_settings
+        self.flag_output_gif = flag_output_gif
+        self.flag_show_animation = flag_show_animation
+        if self.flag_output_gif or self.flag_show_animation:
+            if animation_settings is None:
+                raise Exception("Without Gif Setting")
+            else:
+                self.animation_settings = animation_settings
+        input_types = self.get_input_types()
+        self.input_settings = InputSetting(motions_meta, input_types)
+
+    def get_input_types(self) -> List[str]:
+        input_types: List[str] = []
+
+        if self.flag_output_xlsx:
+            output_types = self.xlsx_settings.output_types
+            if "Score" in output_types:
+                output_types.remove("Score")
+                output_types.append(RECORDING_FOR_SCORE)
+            input_types += output_types
+
+        if self.flag_show_animation or self.flag_output_gif:
+            input_types.append(RECORDING_FOR_SKELETON)
+            if self.animation_settings.flag_visualized_vector:
+                if self.animation_settings.visualized_vector == "Segment Angular Velocity":
+                    input_types.append("Segment Velocity")
+                elif self.animation_settings.visualized_vector == "Segment Angular Acceleration":
+                    input_types.append("Segment Acceleration")
+                else:
+                    input_types.append(self.animation_settings.visualized_vector)
+            if self.animation_settings.flag_heatmap:
+                if self.animation_settings.heatmap_recording == "Score":
+                    input_types.append(RECORDING_FOR_SCORE)
+                else:
+                    input_types.append(self.animation_settings.heatmap_recording)
+
+        input_types = list(set(input_types))
+        return input_types
+
+    def get_comparison_types(self) -> List[str]:
+        comparison_types: List[str] = []
+
+        if self.flag_output_xlsx:
+            comparison_types += self.xlsx_settings.output_types
+
+        if self.flag_show_animation or self.flag_output_gif:
+            if self.animation_settings.flag_heatmap:
+                comparison_types.append(self.animation_settings.heatmap_recording)
+
+        comparison_types = list(set(comparison_types))
+        return comparison_types
+
+    def get_motions(self) -> List[mt.Motion]:
+        motions: List[mt.Motion] = []
+        current_file: str = ""
+        motion_data: Dict[str, pd.DataFrame] = {}
+        for meta_data in self.input_settings.motions_meta:
+            if DEBUG_INFO: print("generating " + meta_data.label + " from " + meta_data.file_name)
+            if current_file != meta_data.file_name:
+                current_file = meta_data.file_name
+                all_path: str = INPUT_FOLDER + meta_data.file_name + "\\data.xlsx"
+                motion_data = pd.read_excel(all_path, sheet_name=self.input_settings.input_types, usecols=USED_COLUMNS)
+
+            motion_data_cut: Dict[str, pd.DataFrame] = {}
+            for recording_type in self.input_settings.input_types:
+                motion_data_cut[recording_type] = motion_data[recording_type][meta_data.start:meta_data.end]
+            motions.append(mt.Motion(motion_data_cut, meta_data))
+
+        return motions
+
+    def output(self, motions: List[mt.Motion], result: Dict[str, pd.DataFrame]):
+        if self.flag_output_xlsx:
+            if DEBUG_INFO: print("writing the result to the out.xlsx")
+            all_path: str = OUTPUT_FOLDER + self.xlsx_settings.xlsx_filename + ".xlsx"
+            with pd.ExcelWriter(all_path) as writer:
+                for output_type in self.xlsx_settings.output_types:
+                    result[output_type].to_excel(writer, sheet_name=output_type, index=False)
+        if self.flag_show_animation or self.flag_output_gif:
+            ani = Animation(motions, self.animation_settings, result[self.animation_settings.heatmap_recording])
+            if self.flag_show_animation:
+                ani.show()
+            if self.flag_output_gif:
+                ani.to_gif()
 
 
 def export_distances(motions: List[mt.Motion], output_types: List[str], frame_wise_wights: pd.DataFrame) -> None:
@@ -32,38 +120,8 @@ def export_distances(motions: List[mt.Motion], output_types: List[str], frame_wi
         if output_type == "Score":
             if DEBUG_INFO: print("calculating the Score")
             result["Score"] = cp.get_scores(motions[0].recordings[RECORDING_FOR_SCORE],
-                                         motions[1].recordings[RECORDING_FOR_SCORE], frame_wise_wights)
+                                            motions[1].recordings[RECORDING_FOR_SCORE], frame_wise_wights)
         else:
             if DEBUG_INFO: print("calculating the distance of " + output_type)
             result[output_type] = cp.get_distances(motions[0].recordings[output_type],
-                                                motions[1].recordings[output_type])
-
-    if DEBUG_INFO: print("writing the result to the out.xlsx")
-    all_path: str = OUTPUT_FOLDER + motions[0].meta.label + "_" + motions[1].meta.label + ".xlsx"
-    with pd.ExcelWriter(all_path) as writer:
-        for output_type in output_types:
-            result[output_type].to_excel(writer, sheet_name=output_type, index=False)
-
-# def get_recording_types(output_types: List[str], animation_settings: anmtn.Setting) -> List[str]:
-#     input_types: List[str] = []
-#
-#     if output_types is not None:
-#         input_types = output_types
-#         if "Score" in output_types:
-#             input_types.remove("Score")
-#             if RECORDING_FOR_SCORE not in input_types:
-#                 input_types.append(RECORDING_FOR_SCORE)
-#
-#     if animation_settings is not None:
-#         if animation_settings.flag_visualized_vector and animation_settings.visualized_vector not in input_types:
-#             input_types.append(animation_settings.visualized_vector)
-#         if animation_settings.flag_heatmap and animation_settings.heatmap_recording not in input_types:
-#             if animation_settings.heatmap_recording == "Score":
-#                 input_types.append(RECORDING_FOR_SCORE)
-#             else:
-#                 input_types.append(animation_settings.heatmap_recording)
-#
-#     if RECORDING_FOR_SKELETON not in input_types:
-#         input_types.append(RECORDING_FOR_SKELETON)
-#
-#     return input_types
+                                                   motions[1].recordings[output_type])

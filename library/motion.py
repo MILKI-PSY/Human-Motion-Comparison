@@ -2,19 +2,16 @@ import numpy as np
 import pandas as pd
 import dtw
 from scipy.spatial.distance import euclidean
-from constants import *
-import comparison as cp
-from typing import List, Dict, Set, Self
+from library.constants import *
+from typing import List, Dict, Set
 
 
 class MetaData:
-    def __init__(self, file_name: str, start: int, end: int, label: str,
-                 recording_types: List[str] = RECORDING_TYPES) -> None:
+    def __init__(self, file_name: str, start: int, end: int, label: str) -> None:
         self.file_name = file_name
         self.start = start
         self.end = end
         self.label = label
-        self.recording_types = recording_types
 
 
 class Motion:
@@ -28,7 +25,7 @@ class Motion:
     def __gt__(self, other) -> bool:
         return len(self) > len(other)
 
-    def centre(self) -> Self:
+    def centre(self) -> 'Motion':
         need_centre_recordings: Set[str] = set(self.meta.recording_types).intersection(NEED_CENTRE_RECORDING_TYPES)
         for recording_name in need_centre_recordings:
             if DEBUG_INFO: print("placing " + self.meta.label + " in the centre")
@@ -43,7 +40,7 @@ class Motion:
 
         return self
 
-    def confront(self) -> Self:
+    def confront(self) -> 'Motion':
         def rotate(frame: pd.Series, sin: float, cos: float) -> pd.Series:
             rotation_matrix: np.ndarray = np.array([[cos, sin, 0], [-sin, cos, 0], [0, 0, 1]])
             for joint in SIMPLIFIED_JOINTS:
@@ -68,7 +65,7 @@ class Motion:
                                                            axis=1, result_type="expand")
         return self
 
-    def synchronized_by(self, reference_motion: "Motion") -> Self:
+    def synchronized_by(self, reference_motion: "Motion") -> 'Motion':
         def frame_distance(frame_0: np.ndarray, frame_1: np.ndarray) -> float:
             distance: float = 0.0
             for i in range(0, len(frame_0), len(AXIS)):
@@ -103,7 +100,7 @@ class Motion:
         return self
 
     def get_body_size(self) -> Dict[str, float]:
-        frame: pd.Series = self.recordings[RECORDING_FOR_SKELETON][0:1]  # because the body size wouldn't change
+        frame: pd.Series = self.recordings[RECORDING_FOR_SKELETON].iloc[0]  # because the body size wouldn't change
         body_size: Dict[str, float] = {}
         for joint_connection in SKELETON_CONNECTION_MAP:
             columns: List[List[str]] = []
@@ -112,7 +109,7 @@ class Motion:
                 for axis in AXIS:
                     columns_for_joint.append(joint + axis)
                 columns.append(columns_for_joint)
-            body_size[joint_connection[0]] = cp.vector_euclidean(frame[columns[0]].values, frame[columns[1]].values)
+            body_size[joint_connection[0]] = euclidean(frame[columns[0]], frame[columns[1]])
         return body_size
 
     def get_angular_vector(self, recording_name: str) -> pd.DataFrame:
