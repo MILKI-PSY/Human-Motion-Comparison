@@ -1,11 +1,9 @@
 import os
-import pandas as pd
 import json
 from flask import Flask, render_template, request
-import library.animation as anmtn
-import library.motion as mtn
+import library.animation as anm
+import library.motion as mt
 from library.IO import *
-from library.constants import *
 
 app = Flask(__name__)
 
@@ -30,7 +28,7 @@ def result():
     # marks_motion_0 = [7600, 7850]
     # marks_motion_1 = [9300, 9800]
 
-    animation_settings = anmtn.Setting(
+    animation_settings = anm.Setting(
         flag_visualized_vector=flag_visualized_vector,
         flag_heatmap=flag_heatmap
     )
@@ -39,8 +37,8 @@ def result():
     #
     # print(input_types)
 
-    meta_data_0 = mtn.MetaData(file_name_0, marks_motion_0[0], marks_motion_0[-1], label_motion_0)
-    meta_data_1 = mtn.MetaData(file_name_1, marks_motion_1[0], marks_motion_1[-1], label_motion_1)
+    meta_data_0 = mt.MetaData(file_name_0, marks_motion_0[0], marks_motion_0[-1], label_motion_0)
+    meta_data_1 = mt.MetaData(file_name_1, marks_motion_1[0], marks_motion_1[-1], label_motion_1)
 
     motions = get_motions([meta_data_0, meta_data_1], RECORDING_TYPES)
 
@@ -49,7 +47,7 @@ def result():
 
     motions[1].synchronized_by(motions[0], weights_groups, marks_motion_0)
 
-    animation = anmtn.Animation(motions, animation_settings)
+    animation = anm.Animation(motions, animation_settings)
 
     return animation.to_html5_video()
 

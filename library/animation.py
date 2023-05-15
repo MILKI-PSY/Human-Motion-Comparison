@@ -1,25 +1,29 @@
+import numpy as np
+import pandas as pd
 import matplotlib.pyplot as plt
 from matplotlib.widgets import Button
 from matplotlib.animation import FuncAnimation
+import comparison as cp
+import motion as mt
+from constants import *
+from typing import List, Generator, Tuple, Dict, Optional, Union
 
-from library.comparison import *
-import library.motion as mtn
-
-import numpy as np
-from typing import List, Generator, Tuple
+Color = Tuple[float, float, float]
+Color_generator = Generator[Color, None, None]
 
 
 class Character:
-    def __init__(self, motion: mtn.Motion, axes: plt.Axes, visualized_vector: str,
-                 color_generator: Generator[Tuple[float, float, float], None, None]) -> None:
-        self.position_recording = motion.recordings[RECORDING_FOR_SKELETON]
+    def __init__(self, motion: mt.Motion, axes: plt.Axes, visualized_vector: str,
+                 color_generator: Color_generator) -> None:
 
+        self.position_recording = motion.recordings[RECORDING_FOR_SKELETON]
         if visualized_vector in NEED_ANGULATION_BEFORE_VISUALIZATION:
             self.visualized_vector = motion.get_angular_vector(visualized_vector)
             self.visualized_vector_key_type = "Tuple"
         else:
             self.visualized_vector = motion.recordings[visualized_vector]
             self.visualized_vector_key_type = "str"
+        color: Color
         color = next(color_generator)
         self.skeleton = [axes.plot([], [], [], c=color)[0] for _ in SKELETON_CONNECTION_MAP]
         self.skeleton[0].set_label(motion.meta.label)  # the whole skeleton is the same color, so one label is enough
@@ -33,7 +37,7 @@ class Character:
 class Setting:
     def __init__(self, flag_visualized_vector: bool = False, flag_heatmap: bool = False, flag_repeat: bool = True,
                  visualized_vector: str = "Segment Velocity", heatmap_recording: str = "Score",
-                 frame_wise_weights=None):
+                 frame_wise_weights: Optional[pd.DataFrame] = None):
         self.flag_visualized_vector = flag_visualized_vector
         self.flag_heatmap = flag_heatmap
         self.flag_repeat = flag_repeat
@@ -43,7 +47,7 @@ class Setting:
 
 
 class Animation:
-    def __init__(self, motions: List[mtn.Motion], setting: Setting) -> None:
+    def __init__(self, motions: List[mt.Motion], setting: Setting) -> None:
         self.is_paused = False
         self.setting = setting
 
@@ -52,15 +56,15 @@ class Animation:
         self.fig = plt.figure()
 
         if len(motions) == 2 and self.setting.flag_heatmap:
-            self.scores = get_scores(motions[0].recordings[RECORDING_FOR_SCORE],
-                                     motions[1].recordings[RECORDING_FOR_SCORE],
-                                     setting.frame_wise_weights)
+            self.scores = cp.get_scores(motions[0].recordings[RECORDING_FOR_SCORE],
+                                        motions[1].recordings[RECORDING_FOR_SCORE],
+                                        setting.frame_wise_weights)
             self.ax_heatmap = self.fig.add_subplot(1, 2, 2)
             self.ax_heatmap.set_aspect(1)
             self.ax_heatmap.set_axis_off()
             self.ax_heatmap.set_xlim(-1, 1)
             self.ax_heatmap.set_ylim(-1, 1)
-            joint_positions = np.array(HEATMAP_JOINT_POSITION)
+            joint_positions: np.ndarray = np.array(HEATMAP_JOINT_POSITION)
             self.heatmap = self.ax_heatmap.scatter(joint_positions[:, 0], joint_positions[:, 1], s=200,
                                                    vmin=MINIMUM_SCORE, vmax=MAXIMUM_SCORE,
                                                    c=np.zeros(len(HEATMAP_JOINT_POSITION)), cmap=COLOR_MAP)
@@ -90,11 +94,11 @@ class Animation:
     def update(self, index: int):
         def update_skeleton() -> None:
             for line, joint_connection in zip(character.skeleton, SKELETON_CONNECTION_MAP):
-                endpoint_0 = joint_connection[0]
-                endpoint_1 = joint_connection[1]
-                line_x = [position[endpoint_0 + " x"], position[endpoint_1 + " x"]]
-                line_y = [position[endpoint_0 + " y"], position[endpoint_1 + " y"]]
-                line_z = [position[endpoint_0 + " z"], position[endpoint_1 + " z"]]
+                endpoint_0: str = joint_connection[0]
+                endpoint_1: str = joint_connection[1]
+                line_x: List[int] = [position[endpoint_0 + " x"], position[endpoint_1 + " x"]]
+                line_y: List[int] = [position[endpoint_0 + " y"], position[endpoint_1 + " y"]]
+                line_z: List[int] = [position[endpoint_0 + " z"], position[endpoint_1 + " z"]]
 
                 line.set_data([line_x, line_y])
                 line.set_3d_properties(line_z)
@@ -102,9 +106,9 @@ class Animation:
         def update_visualized_vectors() -> None:
             vectors = character.visualized_vector.iloc[index]
             for joint_velocity, joint_connection in zip(character.visualized_vectors, SKELETON_CONNECTION_MAP):
-                endpoint_0 = joint_connection[0]
-                endpoint_1 = joint_connection[1]
-                new_vectors = {}
+                endpoint_0: str = joint_connection[0]
+                endpoint_1: str = joint_connection[1]
+                new_vectors: Dict[Union(Tuple[str, str, str], str), List[int]] = {}
                 key = ""
                 for axis in AXIS:
                     if character.visualized_vector_key_type == "Tuple":
@@ -122,7 +126,7 @@ class Animation:
 
         for character in self.characters:
             if index < len(character):
-                position = character.position_recording.iloc[index]
+                position: pd.DataFrame = character.position_recording.iloc[index]
                 update_skeleton()
                 if self.setting.flag_heatmap:
                     update_heatmap()
@@ -140,15 +144,15 @@ class Animation:
         if DEBUG_INFO: print("converting the output to html5 video")
         return self.ani.to_html5_video()
 
-    def to_gif(self, file_name):
+    def to_gif(self, file_name: str):
         if DEBUG_INFO: print("saving animation as gif")
-        all_path = OUTPUT_FOLDER + file_name + ".gif"
-        self.ani.save(all_path, writer='imagemagick', fps=60)
+        all_path: str = OUTPUT_FOLDER + file_name + ".gif"
+        self.ani.save(all_path, writer=GIF_WRITER, fps=GIF_FPS)
 
     def show(self):
         plt.show()
 
 
-def get_color_generator() -> Generator[Tuple[float, float, float], None, None]:
+def get_color_generator() -> Color_generator:
     for color in COLOR_POOL:
         yield color

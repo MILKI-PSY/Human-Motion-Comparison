@@ -18,6 +18,9 @@ MINIMUM_SCORE = 0
 MAXIMUM_SCORE = 2
 COLOR_MAP = "Reds"
 
+GIF_WRITER = "imagemagick"
+GIF_FPS = 60
+
 AXIS = [" x", " y", " z"]
 
 VECTORS_ANGULATION_MAP = {
