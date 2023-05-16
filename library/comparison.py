@@ -15,7 +15,7 @@ class Comparison:
             for frame_number in range(start, end):
                 self.frame_wise_weights: pd.DataFrame = pd.concat([self.frame_wise_weights, weights], ignore_index=True)
 
-    def compare(self, motion_0: mt.Motion, motion_1: mt.Motion, comparison_types: str) -> Dict[str, pd.DataFrame]:
+    def compare(self, motion_0: mt.Motion, motion_1: mt.Motion, comparison_types: List[str]) -> Dict[str, pd.DataFrame]:
         if DEBUG_INFO: print("calculating the distances and score")
         result: Dict[str, pd.DataFrame] = {}
         for output_type in comparison_types:

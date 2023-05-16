@@ -1,9 +1,12 @@
 import os
 import json
+import pandas as pd
 from flask import Flask, render_template, request
 import library.animation as anm
 import library.motion as mt
-from library.IO import *
+import library.comparison as cp
+import library.IO as myio
+from library.constants import *
 
 app = Flask(__name__)
 
@@ -25,31 +28,42 @@ def result():
     label_motion_0 = request.form.get("label_motion_0")
     label_motion_1 = request.form.get("label_motion_1")
 
-    # marks_motion_0 = [7600, 7850]
+    marks_motion_0 = [7600, 7850]
+    marks_motion_1 = [9300, 9550]
     # marks_motion_1 = [9300, 9800]
 
-    animation_settings = anm.Setting(
-        flag_visualized_vector=flag_visualized_vector,
-        flag_heatmap=flag_heatmap
-    )
-
-    # input_types = get_recording_types([], animation_settings)
-    #
-    # print(input_types)
+    print(file_name_1)
 
     meta_data_0 = mt.MetaData(file_name_0, marks_motion_0[0], marks_motion_0[-1], label_motion_0)
     meta_data_1 = mt.MetaData(file_name_1, marks_motion_1[0], marks_motion_1[-1], label_motion_1)
 
-    motions = get_motions([meta_data_0, meta_data_1], RECORDING_TYPES)
+    animation_settings = myio.AnimationSetting(
+        flag_visualized_vector=flag_visualized_vector,
+        flag_heatmap=flag_heatmap,
+        flag_repeat=False,
+        visualized_vector="Segment Velocity",
+        heatmap_recording="Score"
+    )
 
-    for motion in motions:
-        motion.centre().confront()
+    io = myio.MyIO(
+        flag_output_xlsx=False,
+        flag_show_animation=True,
+        flag_output_gif=False,
+        xlsx_settings=None,
+        animation_settings=animation_settings,
+        motions_meta=[meta_data_0, meta_data_1]
+    )
 
-    motions[1].synchronized_by(motions[0], weights_groups, marks_motion_0)
+    motions = io.get_motions()
+    comparison = cp.Comparison(weights_groups, marks_motion_0)
 
-    animation = anm.Animation(motions, animation_settings)
+    # for motion in motions:
+    #     motion.centre().confront()
+    #
+    # motions[1].synchronized_by(motions[0])
+    result = comparison.compare(motions[0], motions[1], io.get_comparison_types())
 
-    return animation.to_html5_video()
+    return io.output_web(motions, result)
 
 
 if __name__ == '__main__':

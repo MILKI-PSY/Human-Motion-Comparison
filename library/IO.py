@@ -3,7 +3,7 @@ import library.motion as mt
 import library.comparison as cp
 from library.animation import Animation, AnimationSetting
 from library.constants import *
-from typing import List, Dict, Optional
+from typing import List, Dict, Optional, Union
 
 
 class XlsxSetting:
@@ -37,6 +37,7 @@ class MyIO:
                 self.animation_settings = animation_settings
         input_types = self.get_input_types()
         self.input_settings = InputSetting(motions_meta, input_types)
+        self.animation: Optional[Animation] = None
 
     def get_input_types(self) -> List[str]:
         input_types: List[str] = []
@@ -82,7 +83,7 @@ class MyIO:
     def get_motions(self) -> List[mt.Motion]:
         motions: List[mt.Motion] = []
         current_file: str = ""
-        motion_data: Dict[str, pd.DataFrame] = {}
+        motion_data: Union[Dict[str, pd.DataFrame], pd.DataFrame] = {}
         for meta_data in self.input_settings.motions_meta:
             if DEBUG_INFO: print("generating " + meta_data.label + " from " + meta_data.file_name)
             if current_file != meta_data.file_name:
@@ -91,6 +92,8 @@ class MyIO:
                 motion_data = pd.read_excel(all_path, sheet_name=self.input_settings.input_types, usecols=USED_COLUMNS)
 
             motion_data_cut: Dict[str, pd.DataFrame] = {}
+            print(motion_data)
+
             for recording_type in self.input_settings.input_types:
                 motion_data_cut[recording_type] = motion_data[recording_type][meta_data.start:meta_data.end]
             meta_data.recording_types = self.input_settings.input_types
@@ -100,11 +103,7 @@ class MyIO:
 
     def output(self, motions: List[mt.Motion], result: Dict[str, pd.DataFrame]):
         if self.flag_output_xlsx:
-            if DEBUG_INFO: print("writing the result to the out.xlsx")
-            all_path: str = OUTPUT_FOLDER + self.xlsx_settings.xlsx_filename + ".xlsx"
-            with pd.ExcelWriter(all_path) as writer:
-                for output_type in self.xlsx_settings.output_types:
-                    result[output_type].to_excel(writer, sheet_name=output_type, index=False)
+            self.output_xlsx(result)
         if self.flag_show_animation or self.flag_output_gif:
             ani = Animation(motions, self.animation_settings, result[self.animation_settings.heatmap_recording])
             if self.flag_show_animation:
@@ -112,17 +111,13 @@ class MyIO:
             if self.flag_output_gif:
                 ani.to_gif()
 
+    def output_xlsx(self, result):
+        if DEBUG_INFO: print("writing the result to the out.xlsx")
+        all_path: str = OUTPUT_FOLDER + self.xlsx_settings.xlsx_filename + ".xlsx"
+        with pd.ExcelWriter(all_path) as writer:
+            for output_type in self.xlsx_settings.output_types:
+                result[output_type].to_excel(writer, sheet_name=output_type, index=False)
 
-def export_distances(motions: List[mt.Motion], output_types: List[str], frame_wise_wights: pd.DataFrame) -> None:
-    if len(motions) != 2:
-        raise Exception("In order to calculate the distance to the output, the motions length must be 2")
-    result: Dict[str, pd.DataFrame] = {}
-    for output_type in output_types:
-        if output_type == "Score":
-            if DEBUG_INFO: print("calculating the Score")
-            result["Score"] = cp.get_scores(motions[0].recordings[RECORDING_FOR_SCORE],
-                                            motions[1].recordings[RECORDING_FOR_SCORE], frame_wise_wights)
-        else:
-            if DEBUG_INFO: print("calculating the distance of " + output_type)
-            result[output_type] = cp.get_distances(motions[0].recordings[output_type],
-                                                   motions[1].recordings[output_type])
+    def output_web(self, motions: List[mt.Motion], result: Dict[str, pd.DataFrame]):
+        ani = Animation(motions, self.animation_settings, result[self.animation_settings.heatmap_recording])
+        return ani.to_html5_video()

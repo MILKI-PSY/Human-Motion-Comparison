@@ -84,15 +84,15 @@ class Animation:
         self.ax_motions.set(xlim3d=(-1, 1), xlabel='X')
         self.ax_motions.set(ylim3d=(-1, 1), ylabel='Y')
         self.ax_motions.set(zlim3d=(-1, 1), zlabel='Z')
-        self.ax_motions.legend()
-
-        self.ani = FuncAnimation(self.fig, self.update, frames=len(max(motions, key=len)), interval=40,
-                                 repeat=self.setting.flag_repeat)
 
         self.characters = []
         for motion in motions:
             self.characters.append(
                 Character(motion, self.ax_motions, self.color_generator, self.setting.visualized_vector))
+        self.ax_motions.legend()
+
+        self.ani = FuncAnimation(self.fig, self.update, frames=len(max(motions, key=len)), interval=40,
+                                 repeat=self.setting.flag_repeat)
         # To add a stop button for the animation, about only available for python
         # self.fig.subplots_adjust(bottom=0.2)
         # self.button = Button(self.fig.add_axes([0.81, 0.05, 0.1, 0.075]), 'stop')

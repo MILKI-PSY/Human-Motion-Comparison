@@ -80,6 +80,10 @@
                 weights_groups[index].set(key, value);
             });
             $("#submit").click(function () {
+
+                $('.loader').css("display","block");
+                $('.container').css("opacity", "0.4")
+
                 let marks_motion_0 = [];
                 $('.motion_0 input').each(function () {
                     marks_motion_0.push($(this).val());
@@ -173,11 +177,49 @@
             width: 15%;
             position: absolute;
         }
+
+        .loader {
+            position: absolute;
+            margin: auto;
+            top: 0;
+            left: 0;
+            right: 0;
+            bottom: 0;
+            border: 16px solid #f3f3f3;
+            border-radius: 50%;
+            border-top: 16px solid #0d6efc;
+            width: 120px;
+            height: 120px;
+            -webkit-animation: spin 2s linear infinite; /* Safari */
+            animation: spin 2s linear infinite;
+            display: none;
+        }
+
+        /* Safari */
+        @-webkit-keyframes spin {
+            0% {
+                -webkit-transform: rotate(0deg);
+            }
+            100% {
+                -webkit-transform: rotate(360deg);
+            }
+        }
+
+        @keyframes spin {
+            0% {
+                transform: rotate(0deg);
+            }
+            100% {
+                transform: rotate(360deg);
+            }
+        }
+
+
     </style>
 </head>
 <body>
 
-
+<div class="loader"></div>
 <div class="container mt-3 col-md-8">
 
     <div class="row">
