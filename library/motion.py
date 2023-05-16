@@ -1,6 +1,6 @@
 import numpy as np
 import pandas as pd
-import dtw
+from dtw import dtw, DTW
 from scipy.spatial.distance import euclidean
 from library.constants import *
 from typing import List, Dict, Set
@@ -12,7 +12,7 @@ class MetaData:
         self.start = start
         self.end = end
         self.label = label
-
+        self.recording_types: List[str]
 
 class Motion:
     def __init__(self, recordings: Dict[str, pd.DataFrame], meta: MetaData) -> None:
@@ -68,7 +68,7 @@ class Motion:
     def synchronized_by(self, reference_motion: "Motion") -> 'Motion':
         def frame_distance(frame_0: np.ndarray, frame_1: np.ndarray) -> float:
             distance: float = 0.0
-            for i in range(0, len(frame_0), len(AXIS)):
+            for i in range(1, len(frame_0), len(AXIS)):  # first column is "Frame"
                 distance += euclidean(frame_0[i:i + 3], frame_1[i:i + 3])
             return distance
 
@@ -77,7 +77,7 @@ class Motion:
         reference_recording: pd.DataFrame = reference_motion.recordings[RECORDING_FOR_SKELETON]
         self_recording: pd.DataFrame = self.recordings[RECORDING_FOR_SKELETON]
 
-        alignment: dtw.DTW = dtw.dtw(reference_recording, self_recording, dist_method=frame_distance)
+        alignment: DTW = dtw(reference_recording, self_recording, dist_method=frame_distance)
 
         synchronized_recordings = {}
         columns = self_recording.columns

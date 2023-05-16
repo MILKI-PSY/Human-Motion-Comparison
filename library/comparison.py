@@ -21,22 +21,23 @@ class Comparison:
         for output_type in comparison_types:
             joints_distances: Dict[str, np.ndarray] = {}
             for index, joint in enumerate(SIMPLIFIED_JOINTS):
-                low: int = index * 3
-                upp: int = index * 3 + 3
+                joints_columns: List[str] = []
+                for axis in AXIS:
+                    joints_columns.append(joint + axis)
                 if output_type == "Score":
                     weights: pd.DataFrame = self.frame_wise_weights[joint].astype(float)
                     recording_0 = motion_0.recordings[RECORDING_FOR_SCORE]
                     recording_1 = motion_1.recordings[RECORDING_FOR_SCORE]
-                    joint_distance: np.ndarray = vector_euclidean(recording_0.iloc[:, low:upp].values,
-                                                                  recording_1.iloc[:, low:upp].values)
-                    module: np.ndarray = vector_module(recording_0.iloc[:, low:upp].values)
+                    joint_distance: np.ndarray = vector_euclidean(recording_0.loc[:, joints_columns].values,
+                                                                  recording_1.loc[:, joints_columns].values)
+                    module: np.ndarray = vector_module(recording_0.loc[:, joints_columns].values)
                     module[module < MINIMUM_VELOCITY] = MINIMUM_VELOCITY
                     joints_distances[joint] = joint_distance * weights / module
                 else:
                     recording_0 = motion_0.recordings[output_type]
                     recording_1 = motion_1.recordings[output_type]
-                    distance: np.ndarray = vector_euclidean(recording_0.iloc[:, low:upp].values,
-                                                            recording_1.iloc[:, low:upp].values)
+                    distance: np.ndarray = vector_euclidean(recording_0.loc[:, joints_columns].values,
+                                                            recording_1.loc[:, joints_columns].values)
                     joints_distances[joint] = distance
             result[output_type] = pd.DataFrame(joints_distances)
         return result

@@ -3,6 +3,7 @@ import pandas as pd
 import matplotlib.pyplot as plt
 from matplotlib.widgets import Button
 from matplotlib.animation import FuncAnimation
+from matplotlib.text import Text
 import library.motion as mt
 from library.constants import *
 from typing import List, Generator, Tuple, Dict, Optional, Union
@@ -38,10 +39,10 @@ class Character:
         else:
             self.visualized_vector = motion.recordings[visualized_vector]
             self.visualized_vector_key_type = "str"
-        color: Color
-        color = next(color_generator)
+        self.label = motion.meta.label
+        color: Color = next(color_generator)
         self.skeleton = [axes.plot([], [], [], c=color)[0] for _ in SKELETON_CONNECTION_MAP]
-        self.skeleton[0].set_label(motion.meta.label)  # the whole skeleton is the same color, so one label is enough
+        self.skeleton[0].set_label(self.label)  # the whole skeleton is the same color, so one label is enough
         color = next(color_generator)
         self.visualized_vectors = [axes.plot([], [], [], c=color)[0] for _ in SIMPLIFIED_JOINTS]
 
@@ -52,7 +53,7 @@ class Character:
 class Animation:
     def __init__(self, motions: List[mt.Motion], setting: AnimationSetting,
                  comparison_result: Optional[pd.DataFrame] = None) -> None:
-        self.is_paused = False
+        self.is_paused: bool = False
         self.setting = setting
 
         if DEBUG_INFO: print("generating the animation")
@@ -70,6 +71,11 @@ class Animation:
             self.heatmap = self.ax_heatmap.scatter(joint_positions[:, 0], joint_positions[:, 1], s=200,
                                                    vmin=MINIMUM_SCORE, vmax=MAXIMUM_SCORE,
                                                    c=np.zeros(len(HEATMAP_JOINT_POSITION)), cmap=COLOR_MAP)
+            self.texts: Dict[str, Text] = {}
+            for index, motion in enumerate(motions):
+                self.texts[motion.meta.label] = self.ax_heatmap.text(0.6, 0.8 - 0.2 * index, "", fontsize=10)
+            self.texts["frame"] = self.ax_heatmap.text(0.6, 1, "", fontsize=10)
+
             self.ax_motions = self.fig.add_subplot(1, 2, 1, projection="3d")
         else:
             self.setting.flag_heatmap = False
@@ -78,16 +84,15 @@ class Animation:
         self.ax_motions.set(xlim3d=(-1, 1), xlabel='X')
         self.ax_motions.set(ylim3d=(-1, 1), ylabel='Y')
         self.ax_motions.set(zlim3d=(-1, 1), zlabel='Z')
-
-        self.characters = []
-        for motion in motions:
-            self.characters.append(
-                Character(motion, self.ax_motions, self.color_generator, self.setting.visualized_vector))
         self.ax_motions.legend()
 
         self.ani = FuncAnimation(self.fig, self.update, frames=len(max(motions, key=len)), interval=40,
                                  repeat=self.setting.flag_repeat)
 
+        self.characters = []
+        for motion in motions:
+            self.characters.append(
+                Character(motion, self.ax_motions, self.color_generator, self.setting.visualized_vector))
         # To add a stop button for the animation, about only available for python
         # self.fig.subplots_adjust(bottom=0.2)
         # self.button = Button(self.fig.add_axes([0.81, 0.05, 0.1, 0.075]), 'stop')
@@ -98,12 +103,13 @@ class Animation:
             for line, joint_connection in zip(character.skeleton, SKELETON_CONNECTION_MAP):
                 endpoint_0: str = joint_connection[0]
                 endpoint_1: str = joint_connection[1]
-                line_x: List[int] = [position[endpoint_0 + " x"], position[endpoint_1 + " x"]]
-                line_y: List[int] = [position[endpoint_0 + " y"], position[endpoint_1 + " y"]]
-                line_z: List[int] = [position[endpoint_0 + " z"], position[endpoint_1 + " z"]]
 
-                line.set_data([line_x, line_y])
-                line.set_3d_properties(line_z)
+                lines: Dict[str, List[int]] = {}
+                for axis in AXIS:
+                    lines[axis] = [position[endpoint_0 + axis], position[endpoint_1 + axis]]
+
+                line.set_data([lines[" x"], lines[" y"]])
+                line.set_3d_properties(lines[" z"])
 
         def update_visualized_vectors() -> None:
             vectors = character.visualized_vector.iloc[index]
@@ -124,16 +130,19 @@ class Animation:
                 joint_velocity.set_3d_properties(new_vectors[" z"])
 
         def update_heatmap() -> None:
-            self.heatmap.set_array(self.comparison_result.iloc[index][:-1])
 
+            self.heatmap.set_array(self.comparison_result.iloc[index][:])
+
+        self.texts["frame"].set_text("frame: " + str(index))
         for character in self.characters:
             if index < len(character):
                 position: pd.DataFrame = character.position_recording.iloc[index]
+                self.texts[character.label].set_text(character.label + ": " + str(int(position["Frame"])))
                 update_skeleton()
-                if self.setting.flag_heatmap:
-                    update_heatmap()
                 if self.setting.flag_visualized_vector:
                     update_visualized_vectors()
+        if self.setting.flag_heatmap:
+            update_heatmap()
 
     def toggle_pause(self, event):
         if self.is_paused:

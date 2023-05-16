@@ -66,7 +66,7 @@ HEATMAP_JOINT_POSITION = [[0.0, 0.1],  # Pelvis
 
 COLOR_POOL = list(mcolors.BASE_COLORS.values())
 
-USED_COLUMNS = []
+USED_COLUMNS = ["Frame"]
 for joints in SIMPLIFIED_JOINTS:
     for axis in AXIS:
         USED_COLUMNS.append(joints + axis)
