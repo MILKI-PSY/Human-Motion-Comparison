@@ -92,8 +92,6 @@ class MyIO:
                 motion_data = pd.read_excel(all_path, sheet_name=self.input_settings.input_types, usecols=USED_COLUMNS)
 
             motion_data_cut: Dict[str, pd.DataFrame] = {}
-            print(motion_data)
-
             for recording_type in self.input_settings.input_types:
                 motion_data_cut[recording_type] = motion_data[recording_type][meta_data.start:meta_data.end]
             meta_data.recording_types = self.input_settings.input_types
