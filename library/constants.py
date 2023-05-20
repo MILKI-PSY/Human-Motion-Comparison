@@ -17,6 +17,7 @@ MINIMUM_VELOCITY = 1
 MINIMUM_SCORE = 0
 MAXIMUM_SCORE = 2
 COLOR_MAP = "Reds"
+COLOR_POOL = list(mcolors.BASE_COLORS.values())
 
 GIF_WRITER = "imagemagick"
 GIF_FPS = 60
@@ -31,6 +32,11 @@ SIMPLIFIED_JOINTS = ["Pelvis", "Neck", "Head", "Right Upper Arm", "Right Forearm
                      "Right Hand", "Left Upper Arm", "Left Forearm", "Left Hand",
                      "Right Upper Leg", "Right Lower Leg", "Right Foot", "Left Upper Leg",
                      "Left Lower Leg", "Left Foot"]
+
+USED_COLUMNS = ["Frame"]
+for joints in SIMPLIFIED_JOINTS:
+    for axis in AXIS:
+        USED_COLUMNS.append(joints + axis)
 
 SKELETON_CONNECTION_MAP = [("Neck", "Head"),
                            ("Neck", "Left Upper Arm"),
@@ -64,9 +70,18 @@ HEATMAP_JOINT_POSITION = [[0.0, 0.1],  # Pelvis
                           [0.1, -0.8],  # Left Foot
                           ]
 
-COLOR_POOL = list(mcolors.BASE_COLORS.values())
+weights_badminton_service = {}
+for joint in SIMPLIFIED_JOINTS:
+    weights_badminton_service[joint] = 0.3
+weights_badminton_service["Right Hand"] = 1
+weights_badminton_service["Right Upper Arm"] = 1
+weights_badminton_service["Right Forearm"] = 1
+marks_badminton_service = [0, 250]
+dict_badminton_service = {
+    "weights": weights_badminton_service,
+    "marks": marks_badminton_service
+}
 
-USED_COLUMNS = ["Frame"]
-for joints in SIMPLIFIED_JOINTS:
-    for axis in AXIS:
-        USED_COLUMNS.append(joints + axis)
+DEFAULT_WEIGHTS = {
+    "badminton_servie": dict_badminton_service
+}

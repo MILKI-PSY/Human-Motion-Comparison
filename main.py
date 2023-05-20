@@ -16,27 +16,24 @@ socketio = SocketIO(app)
 
 @app.route("/", methods=['GET'])
 def input_parameters():
-    return render_template('new_input.html', recording_names=os.listdir(INPUT_FOLDER))
+    return render_template('input.html', recording_names=os.listdir(INPUT_FOLDER))
 
 
 @app.route('/result', methods=['POST'])
 def result():
     weights_groups = pd.DataFrame([json.loads(weights) for weights in request.form.getlist("weights_groups[]")])
-    marks_motion_0 = [0 if mark == "" else int(mark) for mark in request.form.getlist("marks_motion_0[]")]
     marks_motion_1 = [0 if mark == "" else int(mark) for mark in request.form.getlist("marks_motion_1[]")]
+    motion_name = request.form.get("motion_name")
     flag_visualized_vector = True if request.form.get("flag_visualized_velocity") == "yes" else False
     flag_heatmap = True if request.form.get("flag_heatmap") == "yes" else False
-    file_name_0 = request.form.get("file_name_0")
-    file_name_1 = request.form.get("file_name_1")
-    label_motion_0 = request.form.get("label_motion_0")
+    filename_1 = request.form.get("file_name_1")
     label_motion_1 = request.form.get("label_motion_1")
 
-    marks_motion_0 = [7600, 7850]
     marks_motion_1 = [9300, 9550]
     # marks_motion_1 = [9300, 9800]
 
-    meta_data_0 = mt.MetaData(file_name_0, marks_motion_0[0], marks_motion_0[-1], label_motion_0)
-    meta_data_1 = mt.MetaData(file_name_1, marks_motion_1[0], marks_motion_1[-1], label_motion_1)
+    meta_data_0 = mt.MetaData("reference\\" + motion_name, -1, -1, "Standard")
+    meta_data_1 = mt.MetaData(filename_1, marks_motion_1[0], marks_motion_1[-1], label_motion_1)
 
     animation_settings = myio.AnimationSetting(
         flag_visualized_vector=flag_visualized_vector,
@@ -56,7 +53,8 @@ def result():
     )
 
     motions = io.get_motions()
-    comparison = cp.Comparison(weights_groups, marks_motion_0)
+    default_weights = DEFAULT_WEIGHTS[motion_name]
+    comparison = cp.Comparison(weights_groups, default_weights["marks"])
 
     # for motion in motions:
     #     motion.centre().confront()
@@ -80,5 +78,5 @@ def connected_msg():
 
 
 if __name__ == '__main__':
-    socketio.run(app, debug=True)
+    socketio.run(app)
     # app.run()

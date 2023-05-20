@@ -14,6 +14,7 @@ class MetaData:
         self.label = label
         self.recording_types: List[str]
 
+
 class Motion:
     def __init__(self, recordings: Dict[str, pd.DataFrame], meta: MetaData) -> None:
         self.recordings = recordings

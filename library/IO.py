@@ -93,7 +93,12 @@ class MyIO:
 
             motion_data_cut: Dict[str, pd.DataFrame] = {}
             for recording_type in self.input_settings.input_types:
-                motion_data_cut[recording_type] = motion_data[recording_type][meta_data.start:meta_data.end]
+                if meta_data.start == -1 or meta_data.end == -1:
+                    motion_data_cut[recording_type] = motion_data[recording_type]
+                    meta_data.start = 0
+                    meta_data.end = len(motion_data_cut[recording_type])
+                else:
+                    motion_data_cut[recording_type] = motion_data[recording_type][meta_data.start:meta_data.end]
             meta_data.recording_types = self.input_settings.input_types
             motions.append(mt.Motion(motion_data_cut, meta_data))
 
