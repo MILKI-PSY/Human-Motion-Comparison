@@ -1,74 +1,40 @@
-import matplotlib.colors as mcolors
+from environs import Env
 
-OUTPUT_FOLDER = "C:\\Users\\gaoch\\MA\\Saved\\"
-INPUT_FOLDER = "C:\\Users\\gaoch\\MA\\Data\\"
+env = Env()
+env.read_env()
 
-RECORDING_TYPES = ["Segment Position", "Segment Velocity", "Segment Acceleration",
-                   "Segment Angular Velocity", "Segment Angular Acceleration"]
-NEED_CONFRONT_RECORDING_TYPES = ["Segment Position", "Segment Velocity", "Segment Acceleration"]
-NEED_CENTRE_RECORDING_TYPES = ["Segment Position"]
-NEED_ANGULATION_BEFORE_VISUALIZATION = ["Segment Angular Velocity", "Segment Angular Acceleration"]
+OUTPUT_FOLDER = env.str('OUTPUT_FOLDER')
+INPUT_FOLDER = env.str('INPUT_FOLDER')
 
-RECORDING_FOR_SKELETON = "Segment Position"
-RECORDING_FOR_SCORE = "Segment Angular Velocity"
+RECORDING_TYPES = env.json('RECORDING_TYPES')
+NEED_CONFRONT_RECORDING_TYPES = env.json('NEED_CONFRONT_RECORDING_TYPES')
+NEED_CENTRE_RECORDING_TYPES = env.json('NEED_CENTRE_RECORDING_TYPES')
+NEED_ANGULATION_BEFORE_VISUALIZATION = env.json('NEED_ANGULATION_BEFORE_VISUALIZATION')
 
-DEBUG_INFO = True
-MINIMUM_VELOCITY = 1
-MINIMUM_SCORE = 0
-MAXIMUM_SCORE = 2
-COLOR_MAP = "Reds"
-COLOR_POOL = list(mcolors.BASE_COLORS.values())
+RECORDING_FOR_SKELETON = env.str('RECORDING_FOR_SKELETON')
+RECORDING_FOR_SCORE = env.str('RECORDING_FOR_SCORE')
 
-GIF_WRITER = "imagemagick"
-GIF_FPS = 60
+DEBUG_INFO = env.bool('DEBUG_INFO')
+MINIMUM_VELOCITY = env.int('MINIMUM_VELOCITY')
+MINIMUM_SCORE = env.int('MINIMUM_SCORE')
+MAXIMUM_SCORE = env.int('MAXIMUM_SCORE')
+COLOR_MAP = env.str('COLOR_MAP')
 
-AXIS = [" x", " y", " z"]
+GIF_WRITER = env.str('GIF_WRITER')
+GIF_FPS = env.int('GIF_FPS')
 
-VECTORS_ANGULATION_MAP = {
-    "Segment Angular Velocity": "Segment Velocity",
-    "Segment Angular Acceleration": "Segment Acceleration"
-}
-SIMPLIFIED_JOINTS = ["Pelvis", "Neck", "Head", "Right Upper Arm", "Right Forearm",
-                     "Right Hand", "Left Upper Arm", "Left Forearm", "Left Hand",
-                     "Right Upper Leg", "Right Lower Leg", "Right Foot", "Left Upper Leg",
-                     "Left Lower Leg", "Left Foot"]
+AXIS = env.json('AXIS')
+VECTORS_ANGULATION_MAP = env.json('VECTORS_ANGULATION_MAP')
+SIMPLIFIED_JOINTS = env.json('SIMPLIFIED_JOINTS')
 
 USED_COLUMNS = ["Frame"]
 for joints in SIMPLIFIED_JOINTS:
     for axis in AXIS:
         USED_COLUMNS.append(joints + axis)
 
-SKELETON_CONNECTION_MAP = [("Neck", "Head"),
-                           ("Neck", "Left Upper Arm"),
-                           ("Left Upper Arm", "Left Forearm"),
-                           ("Left Forearm", "Left Hand"),
-                           ("Neck", "Right Upper Arm"),
-                           ("Right Upper Arm", "Right Forearm"),
-                           ("Right Forearm", "Right Hand"),
-                           ("Neck", "Pelvis"),
-                           ("Pelvis", "Left Upper Leg"),
-                           ("Left Upper Leg", "Left Lower Leg"),
-                           ("Left Lower Leg", "Left Foot"),
-                           ("Pelvis", "Right Upper Leg"),
-                           ("Right Upper Leg", "Right Lower Leg"),
-                           ("Right Lower Leg", "Right Foot")]
+SKELETON_CONNECTION_MAP = env.json('SKELETON_CONNECTION_MAP')
 
-HEATMAP_JOINT_POSITION = [[0.0, 0.1],  # Pelvis
-                          [0.0, 0.6],  # Neck
-                          [0.0, 0.8],  # Head
-                          [-0.2, 0.6],  # Right Upper Arm
-                          [-0.3, 0.3],  # Right Forearm
-                          [-0.4, 0.0],  # Right Hand
-                          [0.2, 0.6],  # Left Upper Arm
-                          [0.3, 0.3],  # Left Forearm
-                          [0.4, 0.0],  # Left Hand
-                          [-0.1, 0.1],  # Right Upper Leg
-                          [-0.1, -0.4],  # Right Lower Leg
-                          [-0.1, -0.8],  # Right Foot
-                          [0.1, 0.1],  # Left Upper Leg
-                          [0.1, -0.4],  # Left Lower Leg
-                          [0.1, -0.8],  # Left Foot
-                          ]
+HEATMAP_JOINT_POSITION = env.json('HEATMAP_JOINT_POSITION')
 
 weights_badminton_service = {}
 for joint in SIMPLIFIED_JOINTS:
@@ -78,10 +44,10 @@ weights_badminton_service["Right Upper Arm"] = 1
 weights_badminton_service["Right Forearm"] = 1
 marks_badminton_service = [0, 250]
 dict_badminton_service = {
-    "weights": weights_badminton_service,
+    "weights": [weights_badminton_service],
     "marks": marks_badminton_service
 }
 
 DEFAULT_WEIGHTS = {
-    "badminton_servie": dict_badminton_service
+    "Badminton Service": dict_badminton_service
 }

@@ -1,6 +1,5 @@
 import pandas as pd
 import library.motion as mt
-import library.comparison as cp
 from library.animation import Animation, AnimationSetting
 from library.constants import *
 from typing import List, Dict, Optional, Union
@@ -85,7 +84,7 @@ class MyIO:
         current_file: str = ""
         motion_data: Union[Dict[str, pd.DataFrame], pd.DataFrame] = {}
         for meta_data in self.input_settings.motions_meta:
-            if DEBUG_INFO: print("generating " + meta_data.label + " from " + meta_data.file_name)
+            export_process_information("generating " + meta_data.label + " from " + meta_data.file_name)
             if current_file != meta_data.file_name:
                 current_file = meta_data.file_name
                 all_path: str = INPUT_FOLDER + meta_data.file_name + "\\data.xlsx"
@@ -115,7 +114,7 @@ class MyIO:
                 ani.to_gif()
 
     def output_xlsx(self, result):
-        if DEBUG_INFO: print("writing the result to the out.xlsx")
+        export_process_information("writing the result to the out.xlsx")
         all_path: str = OUTPUT_FOLDER + self.xlsx_settings.xlsx_filename + ".xlsx"
         with pd.ExcelWriter(all_path) as writer:
             for output_type in self.xlsx_settings.output_types:
@@ -124,3 +123,9 @@ class MyIO:
     def output_web(self, motions: List[mt.Motion], result: Dict[str, pd.DataFrame]):
         ani = Animation(motions, self.animation_settings, result[self.animation_settings.heatmap_recording])
         return ani.to_html5_video()
+
+
+def export_process_information(info: str) -> None:
+    if DEBUG_INFO:
+        print(info)
+

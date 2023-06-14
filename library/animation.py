@@ -7,6 +7,7 @@ from matplotlib.text import Text
 import library.motion as mt
 from library.constants import *
 from typing import List, Generator, Tuple, Dict, Optional, Union
+from matplotlib import colors as mcolors
 
 Color = Tuple[float, float, float]
 Color_generator = Generator[Color, None, None]
@@ -67,15 +68,10 @@ class Animation:
             self.ax_heatmap.set_axis_off()
             self.ax_heatmap.set_xlim(-1, 1)
             self.ax_heatmap.set_ylim(-1, 1)
-            joint_positions: np.ndarray = np.array(HEATMAP_JOINT_POSITION)
+            joint_positions: np.ndarray = np.array(list(HEATMAP_JOINT_POSITION.values()))
             self.heatmap = self.ax_heatmap.scatter(joint_positions[:, 0], joint_positions[:, 1], s=200,
                                                    vmin=MINIMUM_SCORE, vmax=MAXIMUM_SCORE,
                                                    c=np.zeros(len(HEATMAP_JOINT_POSITION)), cmap=COLOR_MAP)
-            self.texts: Dict[str, Text] = {}
-            for index, motion in enumerate(motions):
-                self.texts[motion.meta.label] = self.ax_heatmap.text(0.6, 0.8 - 0.2 * index, "", fontsize=10)
-            self.texts["frame"] = self.ax_heatmap.text(0.6, 1, "", fontsize=10)
-
             self.ax_motions = self.fig.add_subplot(1, 2, 1, projection="3d")
         else:
             self.setting.flag_heatmap = False
@@ -84,6 +80,13 @@ class Animation:
         self.ax_motions.set(xlim3d=(-1, 1), xlabel='X')
         self.ax_motions.set(ylim3d=(-1, 1), ylabel='Y')
         self.ax_motions.set(zlim3d=(-1, 1), zlabel='Z')
+
+        self.texts: Dict[str, Text] = {}
+        for index, motion in enumerate(motions):
+            self.texts[motion.meta.label] = self.ax_motions.text2D(0.05, 0.85 - 0.1 * index, "", fontsize=10,
+                                                                   transform=self.ax_motions.transAxes)
+
+        self.texts["frame"] = self.ax_motions.text2D(0.05, 0.95, "", fontsize=10, transform=self.ax_motions.transAxes)
 
         self.characters = []
         for motion in motions:
@@ -165,5 +168,5 @@ class Animation:
 
 
 def get_color_generator() -> Color_generator:
-    for color in COLOR_POOL:
+    for color in list(mcolors.BASE_COLORS.values()):
         yield color

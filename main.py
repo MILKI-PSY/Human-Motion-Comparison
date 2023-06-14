@@ -22,18 +22,18 @@ def input_parameters():
 @app.route('/result', methods=['POST'])
 def result():
     weights_groups = pd.DataFrame([json.loads(weights) for weights in request.form.getlist("weights_groups[]")])
-    marks_motion_1 = [0 if mark == "" else int(mark) for mark in request.form.getlist("marks_motion_1[]")]
+    marks = [int(mark) for mark in request.form.getlist("marks[]")]
+    selected_range = [int(selected_range) for selected_range in request.form.getlist("selected_range[]")]
     motion_name = request.form.get("motion_name")
     flag_visualized_vector = True if request.form.get("flag_visualized_velocity") == "yes" else False
     flag_heatmap = True if request.form.get("flag_heatmap") == "yes" else False
-    filename_1 = request.form.get("file_name_1")
-    label_motion_1 = request.form.get("label_motion_1")
+    recording_name = request.form.get("recording_name")
 
-    marks_motion_1 = [9300, 9550]
-    # marks_motion_1 = [9300, 9800]
+    selected_range = [9300, 9550]
+    # selected_range = [9300, 9800]
 
-    meta_data_0 = mt.MetaData("reference\\" + motion_name, -1, -1, "Standard")
-    meta_data_1 = mt.MetaData(filename_1, marks_motion_1[0], marks_motion_1[-1], label_motion_1)
+    meta_data_0 = mt.MetaData("reference\\" + motion_name, -1, -1, "Expert")
+    meta_data_1 = mt.MetaData(recording_name, selected_range[0], selected_range[-1], "Leaner")
 
     animation_settings = myio.AnimationSetting(
         flag_visualized_vector=flag_visualized_vector,
@@ -54,12 +54,15 @@ def result():
 
     motions = io.get_motions()
     default_weights = DEFAULT_WEIGHTS[motion_name]
+
     comparison = cp.Comparison(weights_groups, default_weights["marks"])
 
     # for motion in motions:
     #     motion.centre().confront()
     #
     # motions[1].synchronized_by(motions[0])
+    with app.test_request_context('/'):
+        socketio.emit('loading information', {'info': "comparing motions"}, namespace="/")
     result = comparison.compare(motions[0], motions[1], io.get_comparison_types())
 
     return io.output_web(motions, result)
@@ -68,8 +71,32 @@ def result():
 @socketio.on('my event')
 def mtest_message(message):
     print(message)
-    emit('my response',
-         {'data': message['data'], 'count': 1})
+    emit('my response', {'data': message['data']})
+
+
+@socketio.on('choose motion')
+def send_default_information_about_chosen_motion(message):
+    file_path = INPUT_FOLDER + 'reference\\' + message['data'] + '\\information.json'
+
+    # Open the file in read mode
+    with open(file_path, "r") as json_file:
+        data_image = json.load(json_file)
+
+    data = DEFAULT_WEIGHTS[message['data']]
+    print(data_image['image'])
+    emit('choose motion', {'weights': json.dumps(data["weights"]), "marks": json.dumps(data["marks"]),
+                           "image": data_image['image']})
+
+
+@socketio.on('choose lerner recording')
+def send_default_information_about_lerner_recording(message):
+    print(message['data'])
+    file_path = INPUT_FOLDER + message['data'] + '\\information.json'
+
+    # Open the file in read mode
+    with open(file_path, "r") as json_file:
+        data = json.load(json_file)
+    emit('choose lerner recording', data)
 
 
 @socketio.on('connect')
@@ -77,6 +104,11 @@ def connected_msg():
     print('client connected.')
 
 
+@socketio.on('disconnect')
+def connected_msg():
+    print('client disconnected.')
+
+
 if __name__ == '__main__':
-    socketio.run(app)
+    socketio.run(app, debug=True)
     # app.run()

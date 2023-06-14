@@ -1,8 +1,8 @@
 import numpy as np
 import pandas as pd
+from library.constants import *
 from dtw import dtw, DTW
 from scipy.spatial.distance import euclidean
-from library.constants import *
 from typing import List, Dict, Set
 
 
@@ -27,7 +27,8 @@ class Motion:
         return len(self) > len(other)
 
     def centre(self) -> 'Motion':
-        need_centre_recordings: Set[str] = set(self.meta.recording_types).intersection(NEED_CENTRE_RECORDING_TYPES)
+        need_centre_recordings: Set[str] = set(self.meta.recording_types).intersection(
+            NEED_CENTRE_RECORDING_TYPES)
         for recording_name in need_centre_recordings:
             if DEBUG_INFO: print("placing " + self.meta.label + " in the centre")
             recording: pd.DataFrame = self.recordings[recording_name]
