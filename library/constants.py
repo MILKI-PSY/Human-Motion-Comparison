@@ -4,7 +4,8 @@ env = Env()
 env.read_env()
 
 OUTPUT_FOLDER = env.str('OUTPUT_FOLDER')
-INPUT_FOLDER = env.str('INPUT_FOLDER')
+RECORDINGS_FOLDER = env.str('RECORDINGS_FOLDER')
+REFERENCES_FOLDER = env.str('REFERENCES_FOLDER')
 
 RECORDING_TYPES = env.json('RECORDING_TYPES')
 NEED_CONFRONT_RECORDING_TYPES = env.json('NEED_CONFRONT_RECORDING_TYPES')
@@ -35,19 +36,3 @@ for joints in SIMPLIFIED_JOINTS:
 SKELETON_CONNECTION_MAP = env.json('SKELETON_CONNECTION_MAP')
 
 HEATMAP_JOINT_POSITION = env.json('HEATMAP_JOINT_POSITION')
-
-weights_badminton_service = {}
-for joint in SIMPLIFIED_JOINTS:
-    weights_badminton_service[joint] = 0.3
-weights_badminton_service["Right Hand"] = 1
-weights_badminton_service["Right Upper Arm"] = 1
-weights_badminton_service["Right Forearm"] = 1
-marks_badminton_service = [0, 250]
-dict_badminton_service = {
-    "weights": [weights_badminton_service],
-    "marks": marks_badminton_service
-}
-
-DEFAULT_WEIGHTS = {
-    "Badminton Service": dict_badminton_service
-}

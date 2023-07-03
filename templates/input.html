@@ -7,12 +7,14 @@
     <link href="https://cdn.staticfile.org/twitter-bootstrap/5.1.1/css/bootstrap.min.css" rel="stylesheet">
     <script src="https://cdn.staticfile.org/jquery/1.10.2/jquery.min.js"></script>
     <script src="https://cdn.staticfile.org/twitter-bootstrap/5.1.1/js/bootstrap.bundle.min.js"></script>
-    <script src="https://www.amcharts.com/lib/4/core.js"></script>
-    <script src="https://www.amcharts.com/lib/4/charts.js"></script>
     <script src="https://cdnjs.cloudflare.com/ajax/libs/colresizable/1.6.0/colResizable-1.6.min.js"></script>
     <script src="https://cdnjs.cloudflare.com/ajax/libs/socket.io/4.0.1/socket.io.js"
             integrity="sha512-q/dWJ3kcmjBLU4Qc47E4A9kTB4m3wuTY7vkFJDTZKjTs8jhyGQnaUrxa0Ytd0ssMZhbNua9hE+E7Qv1j+DyZwA=="
             crossorigin="anonymous"></script>
+    <script src="static/general_functions.js?v=10"></script>
+
+    <link rel="stylesheet" href="static/range_selecters.css">
+    <link rel="stylesheet" href="static/loading_animation.css">
 
     <script>
 
@@ -21,130 +23,51 @@
             "Right Upper Leg", "Right Lower Leg", "Right Foot", "Left Upper Leg",
             "Left Lower Leg", "Left Foot"];
 
+
         let socket = io();
         let weights_groups = [];
         let marks = []
         let start_mark = -1, end_mark = -1;
-        let start_recording = -1, end_recording = -1;
         let chosen_slot = 0;
+
         let selected_range = []
-
-        function delay(time) {
-            return new Promise(resolve => setTimeout(resolve, time));
-        }
-
-        function set_weights_ranges() {
-            let marks_div = $('#marks');
-            let marks_inputs = marks_div.find('input');
-            let difference_value = Math.abs(marks_inputs.length - marks.length);
-            if (marks_inputs.length <= marks.length) {
-                for (let i = 0; i < difference_value; i++) {
-                    ($(".weights_setter").colResizable({disable: true}))
-                    $('.weights-setter-tr').prepend('<th class="range weights_th"></th>')
-                    setTimeout(function () {
-                        $(".weights_setter").colResizable({
-                            liveDrag: true,
-                            draggingClass: "rangeDrag",
-                            gripInnerHtml: "<div class='rangeGrip'></div>",
-                            onResize: set_weights,
-                            minWidth: 3
-                        });
-                    }, 100);
-
-                    marks_div.append(
-                        '<div class="col col-md-6 mt-3">\n' +
-                        '   <div class="input-group">\n' +
-                        '       <input type="number" class="form-control">\n' +
-                        '       <div class="input-group-prepend">\n' +
-                        '           <button class="input-group-btn btn btn-danger sub-mark">-</button>\n' +
-                        '       </div>\n' +
-                        '   </div>\n' +
-                        '</div>'
-                    );
-                }
-            } else {
-                for (let i = 0; i < difference_value; i++) {
-                    $('.weights-setter-tr').find('th').eq(i).remove();
-                    $("#marks").find('.col').eq(i).remove();
-                }
-            }
-
-            let weights_setter_div = $('.weights_setter_div');
-            let ths = weights_setter_div.find('th');
-            let marks_with_start = [...marks];
-            let percentage, new_width;
-            marks_with_start.unshift(start_mark);
-            marks_with_start.push(end_mark);
-
-            for (let i = 0; i < marks_with_start.length - 1; i++) {
-                ths.eq(i).data('index', i);
-                percentage = (marks_with_start[i + 1] - marks_with_start[i]) / (end_mark - start_mark);
-                new_width = Math.round(percentage * weights_setter_div.width() - 3); //2 for padding, 1 for border
-                ths.eq(i).width(new_width + 'px');
-            }
-
-            for (let i = 0; i < marks.length; i++) {
-                marks_div.find('input').eq(i).val(marks[i]);
-            }
-            marks_div.find('input').each(function (i) {
-                $(this).data('index', i);
-            });
-            marks_div.find('button').each(function (i) {
-                $(this).data('index', i);
-            });
-        }
-
-        function set_frames_ranges() {
-            let frames_selector_div = $('.frames_selector_div');
-            let ths = frames_selector_div.find('th');
-            let all_marks = [...selected_range];
-            all_marks.unshift(start_recording);
-            all_marks.push(end_recording);
-            let percentage, new_width;
-
-            for (let i = 0; i < all_marks.length - 1; i++) {
-                percentage = (all_marks[i + 1] - all_marks[i]) / (end_recording - start_recording);
-                new_width = Math.round(percentage * frames_selector_div.width() - 3); //2 for padding, 1 for border
-                ths.eq(i).width(new_width + 'px');
-            }
-
-            $('#range_start').val(selected_range[0]);
-            $('#range_end').val(selected_range[1]);
-        }
+        let start_recording = -1, end_recording = -1;
 
         socket.on('connect', function () {
             socket.emit('my event', {data: 'connected!'});
         });
 
-        socket.on('choose motion', function (res) {
-            let objects_list = JSON.parse(res.weights);
-            for (let i = 0; i < objects_list.length; i++) {
-                weights_groups.push(new Map())
-                for (let key in objects_list[i]) {
-                    if (objects_list[i].hasOwnProperty(key)) {
-                        weights_groups[i].set(key, objects_list[i][key]);
-                    }
-                }
-            }
+        socket.on('update reference', function (res) {
+            $('.lds-ellipsis').css("display", "none");
+            $('.container').css("opacity", "1");
 
-            $('.weight_input input').each(function () {
+            start_reference = res.start;
+            end_reference = res.end;
+            marks = res.marks;
+            weights_groups = res.weights_groups;
+
+            $('.weight_input').each(function () {
                 let key = $(this).attr("id");
-                let value = weights_groups[chosen_slot].get(key);
+                console.log(typeof (weights_groups[chosen_slot]));
+                let value = weights_groups[chosen_slot][key];
                 $(this).val(value);
             });
 
-            $('.weights_setter').css("background-image", 'url(\"data:image/jpg;base64,' + res.image + '\")');
+            reference_image = res.image;
+            $('.weights_setter').css("background-image", 'url(\"data:image/jpg;base64,' + reference_image + '\")');
+            $('#reference_name').val(res.name);
 
-            let all_marks = JSON.parse(res.marks)
-            start_mark = all_marks[0];
-            end_mark = all_marks[all_marks.length - 1];
-            marks = all_marks.slice(1, -1);
+            set_marks();
+            set_reference_range();
+
         });
 
-        socket.on('choose lerner recording', function (res) {
+        socket.on('update recording', function (res) {
+            console.log("in update recording");
             start_recording = res.start;
             end_recording = res.end;
-            $('.frames_selector').css("background-image", 'url(\"data:image/jpg;base64,' + res.image + '\")');
+            recording_image = res.image;
+            $('.frames_selector').css("background-image", 'url(\"data:image/jpg;base64,' + recording_image + '\")');
 
             selected_range[0] = Math.round((end_recording - start_recording) * 0.33) + start_recording;
             selected_range[1] = Math.round((end_recording - start_recording) * 0.67) + start_recording;
@@ -154,23 +77,34 @@
 
         $(document).ready(function () {
 
-            let weight_input = $('.weight_input input')
-
             $(document).on("click", ".add-mark", function () {
                 let new_mark = parseInt($(this).parent().parent().find('input').eq(0).val());
-                let index = 0;
-                while (index < marks.length && marks[index] < new_mark) {
-                    index++;
-                }
-                marks.splice(index, 0, new_mark);
-                set_weights_ranges(marks);
+                let min_interval = Math.ceil((end_mark - start_mark) * 3 / 100)
 
-                let weights = new Map();
-                for (let i in SIMPLIFIED_JOINTS) {
-                    weights.set(SIMPLIFIED_JOINTS[i], 1);
+                let flag_too_small_interval = false;
+                for (let i = 0; i < marks.length; i++) {
+                    if (Math.abs(marks[i] - new_mark) <= min_interval) {
+                        flag_too_small_interval = true;
+                        break;
+                    }
                 }
-                weights_groups.splice(index, 0, weights);
 
+                if (flag_too_small_interval) {
+                    alert("too small interval");
+                } else {
+                    let index = 0;
+                    while (index < marks.length && marks[index] < new_mark) {
+                        index++;
+                    }
+                    marks.splice(index, 0, new_mark);
+                    set_weights_ranges(marks);
+
+                    let weights = new Map();
+                    for (let i in SIMPLIFIED_JOINTS) {
+                        weights.set(SIMPLIFIED_JOINTS[i], 1);
+                    }
+                    weights_groups.splice(index, 0, weights);
+                }
             })
 
             $(document).on("click", ".sub-mark", function () {
@@ -212,18 +146,7 @@
                 });
             });
 
-            $(document).on("click", ".set_weights", function () {
-                chosen_slot = $(this).val()
-                $('.weight_input input').each(function () {
-                    let index = Number(chosen_slot);
-                    let key = $(this).attr("id");
-                    let value = weights_groups[index].get(key);
-                    $(this).val(value);
-
-                });
-            })
-
-            weight_input.change(function () {
+            $(document).on("change", ".weight_input", function () {
                 let index = Number(chosen_slot);
                 let key = $(this).attr("id");
                 let value = Number($(this).val());
@@ -232,14 +155,15 @@
                 weights_groups[index][key] = value;
             });
 
-            $("#submit").click(function () {
+            $(document).on("change", "#learner_recording_input", function () {
+                console.log("in change learner_recording_input")
+                let file = $(this).prop('files')[0];
+                socket.emit('update learner recording', {file: file, name: file.name.split(".")[0]});
+            })
+
+            $(document).on("click", "#submit", function () {
                 $('.loading_animation').css("display", "block");
                 $('.container').css("opacity", "0.4")
-
-                // let marks_motion_1 = []
-                // $('#marks input').each(function () {
-                //     marks.push($(this).val());
-                // });
 
                 let st_weights_groups = []
                 for (let i in weights_groups) {
@@ -266,90 +190,36 @@
             });
 
             let mannequin_wight = $("#weights").width();
-            let mannequin_height = mannequin_wight * (914 / 670) //The resolution of the original image is 670 * 914
+            let mannequin_height = mannequin_wight * (900 / 430)
             $("#weights").css("height", mannequin_height + "px").css("background-size", mannequin_wight + "px " + mannequin_height + "px");
 
-            let str_recording_names = "{{recording_names}}";
-            let recording_names = str_recording_names.replace("[&#39;", "").replace("&#39;]", "").split("&#39;, &#39;");
-            for (let i in recording_names) {
-                $("#recording_name").append("<option value=" + recording_names[i] + ">" + recording_names[i] + "</option>");
-            }
-
-            let lerner_recording_input = $("#recording_name")
-
-            socket.emit('choose lerner recording', {data: recording_names[0]});
-            lerner_recording_input.change(function () {
-                console.log(lerner_recording_input.val());
-                socket.emit('choose lerner recording', {data: this.value});
-            })
-
-            let motion_name_input = $("#motion_name")
-            socket.emit('choose motion', {data: motion_name_input.val()});
-            motion_name_input.change(function () {
-                socket.emit('choose motion', {data: this.value});
-            })
-
-
-        })
-
-
-        $(function () {
             $(".weights_setter").colResizable({
                 liveDrag: true,
                 draggingClass: "rangeDrag",
-                // gripInnerHtml: "<div class='rangeGrip'></div>",
-                onResize: set_weights,
+                onResize: update_marks_info,
                 minWidth: 3
             });
 
             $(".frames_selector").colResizable({
                 liveDrag: true,
                 draggingClass: "rangeDrag",
-                // gripInnerHtml: "<div class='rangeGrip'></div>",
-                onResize: choose_range,
+                onResize: update_selected_range_info,
                 minWidth: 3
             });
-        });
 
-        let set_weights = function (e) {
-            let columns = $(e.currentTarget).find("th");
-            let ranges = [], total = 0, i, w;
-            for (i = 0; i < columns.length; i++) {
-                w = columns.eq(i).width() + 3; // 2 for paddings and 1 for border
-                ranges.push(w);
-                total += w;
+            let str_reference_names = "{{reference_names}}";
+            let reference_names = str_reference_names.replace("[&#39;", "").replace("&#39;]", "").split("&#39;, &#39;");
+            for (let i in reference_names) {
+                $("#reference_names").append("<option value=" + reference_names[i] + ">" + reference_names[i] + "</option>");
             }
+            socket.emit('choose reference', {reference_name: reference_names[0]});
 
-            let curser = 0;
-            let frame_number = 0;
-            let marks_inputs = $('#marks').find('input');
 
-            for (let i = 0; i < ranges.length; i++) {
-                curser += ranges[i];
-                frame_number = Math.round((curser / total) * (end_mark - start_mark) + start_mark);
-                marks_inputs.eq(i).val(frame_number);
-                marks[i] = frame_number;
-            }
-
-        }
-
-        let choose_range = function (e) {
-            let columns = $(e.currentTarget).find("th");
-            let ranges = [], total = 0, i, w;
-            for (i = 0; i < columns.length; i++) {
-                w = columns.eq(i).width() + 3; // 2 for padding and 1 for border
-                ranges.push(w);
-                total += w;
-            }
-            selected_range[0] = Math.round(ranges[0] / total * (end_recording - start_recording) + start_recording);
-            selected_range[1] = Math.round((ranges[0] + ranges[1]) / total * (end_recording - start_recording) + start_recording)
-            $('#range_start').val(selected_range[0]);
-            $('#range_end').val(selected_range[1]);
-        }
+        })
 
         window.onresize = function () {
             let mannequin_wight = $("#weights").width();
-            let mannequin_height = mannequin_wight * (914 / 670) //The resolution of the original image is 670 * 914
+            let mannequin_height = mannequin_wight * (900 / 430) //The resolution of the original image is 382 * 913
             $("#weights").css("height", mannequin_height + "px");
             $("#weights").css("background-size", mannequin_wight + "px " + mannequin_height + "px");
         }
@@ -377,8 +247,6 @@
                         field.attr("value", value);
                         form.append(field);
                     }
-
-
                 });
                 $(form).appendTo('body').submit();
             }
@@ -387,243 +255,193 @@
 
     </script>
 
-    <style>
-        .weight_input {
-            width: 15%;
-            position: absolute;
-        }
-
-        .range_selector_div {
-            height: 40px;
-            border-radius: 6px;
-            border: 1px solid lightgrey;
-            padding: 0;
-        }
-
-
-        .range_selector {
-            height: 34px;
-            margin-top: 2px;
-            width: 100%;
-            background-size: 100% 100%;
-        }
-
-        .range {
-            height: 30px;
-            border-right: 1px solid lightgrey;
-        }
-
-        .unselected_range {
-            opacity: 0.8;
-            background-color: white;
-        }
-
-
-        .loading_animation {
-            border: 16px solid #f3f3f3;
-            border-radius: 50%;
-            border-top: 16px solid #0d6efc;
-            width: 120px;
-            height: 120px;
-            -webkit-animation: spin 2s linear infinite; /* Safari */
-            animation: spin 2s linear infinite;
-
-        }
-
-        .loading_div {
-            position: absolute;
-            margin: auto;
-            top: 0;
-            left: 0;
-            right: 0;
-            bottom: 0;
-            display: none;
-        }
-
-        /* Safari */
-        @-webkit-keyframes spin {
-            0% {
-                -webkit-transform: rotate(0deg);
-            }
-            100% {
-                -webkit-transform: rotate(360deg);
-            }
-        }
-
-        @keyframes spin {
-            0% {
-                transform: rotate(0deg);
-            }
-            100% {
-                transform: rotate(360deg);
-            }
-        }
-
-
-    </style>
 </head>
 <body>
 
-<div class="loading_div">
-    <div class="loading_animation"></div>
-    <div id="loading_info"></div>
+<div class="lds-ellipsis">
+    <div></div>
+    <div></div>
+    <div></div>
+    <div></div>
 </div>
 
 
 <!--<div id="chartdiv"></div>-->
-<!--<script src="static/script.js?v=10"></script>-->
 
-<div class="container mt-3 col-md-8">
+
+<div class="container mt-3 col-md-12">
 
     <div class="row">
-        <div class="col col-md-5">
-            <!--motion names drop down list-->
-            <div class="row mt-3">
-                <div class="col  col-md-8">
-                    <label for="motion_name" class="form-label">Motion Name:</label>
-                    <select class="form-select" id="motion_name" , value="Badminton Service">
-                        <option>Badminton Service</option>
-                        <option>Badminton Hitting</option>
-                    </select>
-                </div>
-            </div>
-            <!--weights bar-->
-            <div class="row mt-3">
-                <div class="col  col-md-12">
-                    <div class="range_selector_div weights_setter_div">
-                        <table class="weights_setter range_selector">
-                            <tr class="weights-setter-tr">
-                                <th class="range weights_th" data-index="0" style="border: none"></th>
-                            </tr>
-                        </table>
-                    </div>
-                </div>
-            </div>
-            <!--marks frame numbers-->
-            <div class="row mt-3">
-                <div class="col col-md-6">
-                    <div class="input-group">
-                        <input type="number" class="form-control" placeholder="Add New Mark">
-                        <div class="input-group-prepend">
-                            <button class="input-group-btn btn btn-primary add-mark">+</button>
-                        </div>
-                    </div>
-                </div>
-            </div>
-            <div class="row" id="marks">
+        <div class="col col-md-4 offset-md-2">
+            <div class="card">
+                <div class="card-body">
+                    <!--motion names drop down list-->
+                    <div class="row">
+                        <div class="col  col-md-8">
+                            <label for="reference_names" class="form-label">Motion Name:</label>
+                            <select class="form-select" id="reference_names">
 
-            </div>
-            <!--learner's motion recordings drop down list-->
-            <div class="row mt-3">
-                <div class="col col-md-8">
-                    <label for="recording_name" class="form-label">Learner's motion recording:</label>
-                    <select class="form-select recording_name_select" id="recording_name"> </select>
-                </div>
-            </div>
-            <!--frame range selector-->
-            <div class="row mt-3">
-                <div class="col  col-md-12">
-                    <div class="range_selector_div frames_selector_div">
-                        <table class="range_selector frames_selector">
-                            <tr>
-                                <th class="unselected_range range"></th>
-                                <th class="range"></th>
-                                <th class="unselected_range range" style="border: none"></th>
-                            </tr>
-                        </table>
+                            </select>
+                        </div>
                     </div>
-                </div>
-            </div>
+                    <!--weights bar-->
+                    <div class="row mt-3">
+                        <div class="col  col-md-12">
+                            <div class="range_selector_div weights_setter_div">
+                                <table class="weights_setter range_selector">
+                                    <tr class="weights-setter-tr">
+                                        <th class="range weights_th" data-index="0" style="border: none"></th>
+                                    </tr>
+                                </table>
+                            </div>
+                        </div>
+                    </div>
+                    <!--marks frame numbers-->
+                    <div class="row mt-3">
+                        <div class="col col-md-6">
+                            <div class="input-group">
+                                <input type="number" class="form-control" placeholder="Add New Mark">
+                                <div class="input-group-prepend">
+                                    <button class="input-group-btn btn btn-primary add-mark">+</button>
+                                </div>
+                            </div>
+                        </div>
+                    </div>
 
-            <!--start/end frame numbers-->
-            <div class="row mt-3 range_inputs">
-                <div class="col col-md-6">
-                    <div class="input-group">
-                        <div class="input-group-prepend">
-                            <span class="input-group-text">Start</span>
+                    <div class="row" id="marks">
+
+                    </div>
+                </div>
+            </div>
+            <div class="card mt-3">
+                <div class="card-body">
+                    <!--learner's motion recordings drop down list-->
+                    <div class="row">
+                        <div class="col col-md-8">
+                            <label for="learner_recording_input" class="form-label">Please Upload Your
+                                Recording:</label>
+                            <input type="file" class="form-control" id="learner_recording_input"/>
                         </div>
-                        <input type="number" class="form-control" id="range_start">
                     </div>
-                </div>
-                <div class="col col-md-6">
-                    <div class="input-group">
-                        <div class="input-group-prepend">
-                            <span class="input-group-text">End</span>
+                    <!--frame range selector-->
+                    <div class="row mt-3">
+                        <div class="col  col-md-12">
+                            <div class="range_selector_div frames_selector_div">
+                                <table class="range_selector frames_selector">
+                                    <tr>
+                                        <th class="unselected_range range"></th>
+                                        <th class="range"></th>
+                                        <th class="unselected_range range" style="border: none"></th>
+                                    </tr>
+                                </table>
+                            </div>
                         </div>
-                        <input type="number" class="form-control" id="range_end">
+                    </div>
+
+                    <!--start/end frame numbers-->
+                    <div class="row mt-3 range_inputs">
+                        <div class="col col-md-6">
+                            <div class="input-group">
+                                <div class="input-group-prepend">
+                                    <span class="input-group-text">Start</span>
+                                </div>
+                                <input type="number" class="form-control" id="range_start">
+                            </div>
+                        </div>
+                        <div class="col col-md-6">
+                            <div class="input-group">
+                                <div class="input-group-prepend">
+                                    <span class="input-group-text">End</span>
+                                </div>
+                                <input type="number" class="form-control" id="range_end">
+                            </div>
+                        </div>
+                    </div>
+                    <!--flag_visualized_velocity-->
+                    <div class="row mt-3">
+                        <div class="col">
+                            <div class="form-check form-switch">
+                                <input class="form-check-input" type="checkbox" id="flag_visualized_velocity"
+                                       value="no">
+                                <label class="form-check-label" for="flag_visualized_velocity">With Visualized
+                                    Velocity</label>
+                            </div>
+                        </div>
+                    </div>
+                    <!--flag_heatmap-->
+                    <div class="row mt-3">
+                        <div class="col">
+                            <div class="form-check form-switch">
+                                <input class="form-check-input" type="checkbox" id="flag_heatmap" value="yes" checked>
+                                <label class="form-check-label" for="flag_heatmap">With Heatmap</label>
+                            </div>
+                        </div>
+                    </div>
+                    <!--submit button-->
+                    <div class="row mt-3 ">
+                        <div class="col col-md-3">
+                            <button id="submit" class="btn btn-primary">Submit</button>
+                        </div>
                     </div>
                 </div>
-            </div>
-            <!--flag_visualized_velocity-->
-            <div class="row mt-3">
-                <div class="col">
-                    <div class="form-check form-switch">
-                        <input class="form-check-input" type="checkbox" id="flag_visualized_velocity" value="no">
-                        <label class="form-check-label" for="flag_visualized_velocity">With Visualized Velocity</label>
-                    </div>
-                </div>
-            </div>
-            <!--flag_heatmap-->
-            <div class="row mt-3">
-                <div class="col">
-                    <div class="form-check form-switch">
-                        <input class="form-check-input" type="checkbox" id="flag_heatmap" value="yes" checked>
-                        <label class="form-check-label" for="flag_heatmap">With Heatmap</label>
-                    </div>
-                </div>
-            </div>
-            <!--submit button-->
-            <div class="mt-3 offset-1">
-                <button id="submit" class="btn btn-primary">Submit</button>
             </div>
         </div>
         <!--input-fields for weights-->
-        <div class="col col-md-6" id="weights"
+        <div class="col col-md-3" id="weights"
              style="background-image: url('static/mannequin.jpg'); position: relative; padding: 0">
-            <div class="weight_input" style="left: 42.4%; top:5%">
-                <input type="number" class="form-control" min="0" max="1" step="0.01" name="weight" id="Head">
+            <div style="left: 40%; top:5%; position: absolute; width: 23%">
+                <input type="number" class="form-control weight_input" min="0" max="1" step="0.01" name="weight"
+                       id="Head">
             </div>
-            <div class="weight_input" style="left: 20%;top: 20%">
-                <input type="number" class="form-control" min="0" max="1" step="0.01" id="Right Upper Arm">
+            <div style="left: 14%;top: 20%; position: absolute; width: 23%">
+                <input type="number" class="form-control weight_input" min="0" max="1" step="0.01"
+                       id="Right Upper Arm">
             </div>
-            <div class="weight_input" style="left: 42.4%;top: 15%">
-                <input type="number" class="form-control" min="0" max="1" step="0.01" id="Neck">
+            <div style="left: 40%;top: 15%; position: absolute; width: 23%">
+                <input type="number" class="form-control weight_input" min="0" max="1" step="0.01" id="Neck">
             </div>
-            <div class="weight_input" style="left: 65%;top: 20%">
-                <input type="number" class="form-control" min="0" max="1" step="0.01" id="Left Upper Arm">
+            <div style="left: 65%;top: 20%; position: absolute; width: 23%">
+                <input type="number" class="form-control weight_input" min="0" max="1" step="0.01"
+                       id="Left Upper Arm">
             </div>
-            <div class="weight_input" style="left: 19.5%;top: 35%">
-                <input type="number" class="form-control" min="0" max="1" step="0.01" id="Right Forearm">
+            <div style="left: 9%;top: 35%; position: absolute; width: 23%">
+                <input type="number" class="form-control weight_input" min="0" max="1" step="0.01"
+                       id="Right Forearm">
             </div>
-            <div class="weight_input" style="left: 65.5%;top: 35%">
-                <input type="number" class="form-control" min="0" max="1" step="0.01" id="Left Forearm">
+            <div style="left: 70%;top: 35%; position: absolute; width: 23%">
+                <input type="number" class="form-control weight_input" min="0" max="1" step="0.01"
+                       id="Left Forearm">
             </div>
-            <div class="weight_input" style="left: 18%;top: 55%">
-                <input type="number" class="form-control" min="0" max="1" step="0.01" id="Right Hand">
+            <div style="left: 3%;top: 55%; position: absolute; width: 23%">
+                <input type="number" class="form-control weight_input" min="0" max="1" step="0.01" id="Right Hand">
             </div>
-            <div class="weight_input" style="left: 67%;top: 55%">
-                <input type="number" class="form-control" min="0" max="1" step="0.01" id="Left Hand">
+            <div style="left: 76%;top: 55%; position: absolute; width: 23%">
+                <input type="number" class="form-control weight_input" min="0" max="1" step="0.01" id="Left Hand">
             </div>
-            <div class="weight_input" style="left: 34%;top: 52%">
-                <input type="number" class="form-control" min="0" max="1" step="0.01" id="Right Upper Leg">
+            <div style="left: 28%;top: 52%; position: absolute; width: 23%">
+                <input type="number" class="form-control weight_input" min="0" max="1" step="0.01"
+                       id="Right Upper Leg">
             </div>
-            <div class="weight_input" style="left: 42.4%;top: 45%">
-                <input type="number" class="form-control" min="0" max="1" step="0.01" id="Pelvis">
+            <div style="left: 40%;top: 45%; position: absolute; width: 23%">
+                <input type="number" class="form-control weight_input" min="0" max="1" step="0.01" id="Pelvis">
             </div>
-            <div class="weight_input" style="left: 51%;top: 52%">
-                <input type="number" class="form-control" min="0" max="1" step="0.01" id="Left Upper Leg">
+            <div style="left: 51%;top: 52%; position: absolute; width: 23%">
+                <input type="number" class="form-control weight_input" min="0" max="1" step="0.01"
+                       id="Left Upper Leg">
             </div>
-            <div class="weight_input" style="left: 33.5%;top: 68%">
-                <input type="number" class="form-control" min="0" max="1" step="0.01" id="Right Lower Leg">
+            <div style="left: 28%;top: 68%; position: absolute; width: 23%">
+                <input type="number" class="form-control weight_input" min="0" max="1" step="0.01"
+                       id="Right Lower Leg">
             </div>
-            <div class="weight_input" style="left: 51.5%;top: 68%">
-                <input type="number" class="form-control" min="0" max="1" step="0.01" id="Left Lower Leg">
+            <div style="left: 51%;top: 68%; position: absolute; width: 23%">
+                <input type="number" class="form-control weight_input" min="0" max="1" step="0.01"
+                       id="Left Lower Leg">
             </div>
-            <div class="weight_input" style="left: 33%;top: 93%">
-                <input type="number" class="form-control" min="0" max="1" step="0.01" id="Right Foot">
+            <div style="left: 28%;top: 93%; position: absolute; width: 23%">
+                <input type="number" class="form-control weight_input" min="0" max="1" step="0.01" id="Right Foot">
             </div>
-            <div class="weight_input" style="left: 52%;top: 93%">
-                <input type="number" class="form-control" min="0" max="1" step="0.01" id="Left Foot">
+            <div style="left: 51%;top: 93%; position: absolute; width: 23%">
+                <input type="number" class="form-control weight_input" min="0" max="1" step="0.01" id="Left Foot">
             </div>
         </div>
 
