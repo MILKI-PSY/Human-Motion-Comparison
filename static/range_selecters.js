@@ -11,7 +11,7 @@ function update_marks_info(e) {
     let frame_number = 0;
     let marks_inputs = $('#marks').find('input');
 
-    for (let i = 0; i < ranges.length; i++) {
+    for (let i = 0; i < ranges.length - 1; i++) {
         curser += ranges[i];
         frame_number = Math.round((curser / total) * (end_reference - start_reference) + start_reference);
         marks_inputs.eq(i).val(frame_number);
@@ -41,25 +41,22 @@ function update_selected_range_info(e) {
 function set_reference_range() {
     $('#reference_start_p').text(start_reference);
     $('#reference_end_p').text(end_reference);
+}
 
+function set_recording_range() {
+    $('#recording_start_p').text(start_recording);
+    $('#recording_end_p').text(end_recording);
 }
 
 function set_marks() {
     let marks_div = $('#marks');
     let marks_inputs = marks_div.find('input');
     let difference_value = Math.abs(marks_inputs.length - marks.length);
+    console.log(marks, difference_value);
+    $(".weights_setter").colResizable({disable: true});
     if (marks_inputs.length <= marks.length) {
         for (let i = 0; i < difference_value; i++) {
-            ($(".weights_setter").colResizable({disable: true}))
             $('.weights-setter-tr').prepend('<th class="range weights_th"></th>')
-            setTimeout(function () {
-                $(".weights_setter").colResizable({
-                    liveDrag: true,
-                    draggingClass: "rangeDrag",
-                    onResize: update_marks_info,
-                    minWidth: 3
-                });
-            }, 100);
 
             marks_div.append(
                 '<div class="col col-md-6 mt-3">\n' +
@@ -73,7 +70,7 @@ function set_marks() {
             );
         }
     } else {
-        for (let i = 0; i < difference_value; i++) {
+        for (let i = difference_value - 1; i >= 0; i--) {
             $('.weights-setter-tr').find('th').eq(i).remove();
             $("#marks").find('.col').eq(i).remove();
         }
@@ -92,6 +89,15 @@ function set_marks() {
         new_width = Math.round(percentage * weights_setter_div.width() - 3); //2 for padding, 1 for border
         ths.eq(i).width(new_width + 'px');
     }
+
+    setTimeout(function () {
+        $(".weights_setter").colResizable({
+            liveDrag: true,
+            draggingClass: "rangeDrag",
+            onResize: update_marks_info,
+            minWidth: 3
+        });
+    }, 100);
 
     for (let i = 0; i < marks.length; i++) {
         marks_div.find('input').eq(i).val(marks[i]);
@@ -150,7 +156,7 @@ function set_references_list(reference_names) {
     for (let i in reference_names) {
         $("#reference-list").prepend(
             '<div  class="row mt-3">\n' +
-            '    <div class="col col-md-10 btn-group">\n' +
+            '    <div class="col col-md-12 btn-group">\n' +
             '       <button class="input-group-btn form-control references_btn" value="' + reference_names[i] + '">' + reference_names[i] + '</button>\n' +
             '       <button class="input-group-btn btn btn-danger del-reference" value="' + reference_names[i] + '">-</button>\n' +
             '    </div>\n' +
@@ -160,22 +166,12 @@ function set_references_list(reference_names) {
 }
 
 function set_recordings_list(recording_name) {
-    // $(".recording_btn").each(function (index) {
-    //     let value = $(this).val();
-    //     let index_to_remove = recording_name.indexOf(value);
-    //     console.log(index_to_remove);
-    //     if (index_to_remove === -1) {
-    //         $(this).parent().parent().remove();
-    //     } else {
-    //         recording_name.splice(index_to_remove, 1);
-    //     }
-    // });
     let recording_list = $("#recording-list")
     recording_list.empty();
     for (let i in recording_name) {
         recording_list.prepend(
             '<div  class="row mt-3">\n' +
-            '    <div class="col col-md-10 btn-group">\n' +
+            '    <div class="col col-md-12 btn-group">\n' +
             '       <button class="input-group-btn form-control recording_btn" value="' + recording_name[i] + '">' + recording_name[i] + '</button>\n' +
             '       <button class="input-group-btn btn btn-danger del-recording" value="' + recording_name[i] + '">-</button>\n' +
             '    </div>\n' +

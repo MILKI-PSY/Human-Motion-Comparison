@@ -3,15 +3,16 @@ import pandas as pd
 from library.constants import *
 from dtw import dtw, DTW
 from scipy.spatial.distance import euclidean
-from typing import List, Dict, Set
+from typing import List, Dict, Set, Optional
 
 
 class MetaData:
-    def __init__(self, file_name: str, start: int, end: int, label: str) -> None:
+    def __init__(self, file_name: str, start: int, end: int, label: str, file_path: Optional[str] = None) -> None:
         self.file_name = file_name
         self.start = start
         self.end = end
         self.label = label
+        self.file_path = file_path
         self.recording_types: List[str]
 
 

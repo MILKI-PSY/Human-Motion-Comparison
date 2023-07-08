@@ -10,7 +10,7 @@ class Comparison:
         self.frame_wise_weights: pd.DataFrame = pd.DataFrame(columns=weights_groups.columns)
         for i in range(len(marks) - 1):
             start: int = marks[i]
-            end: int = marks[i + 1]
+            end: int = marks[i + 1] + 1
             weights: pd.DataFrame = weights_groups[i:i + 1]
             for frame_number in range(start, end):
                 self.frame_wise_weights: pd.DataFrame = pd.concat([self.frame_wise_weights, weights], ignore_index=True)
@@ -32,6 +32,8 @@ class Comparison:
                                                                   recording_1.loc[:, joints_columns].values)
                     module: np.ndarray = vector_module(recording_0.loc[:, joints_columns].values)
                     module[module < MINIMUM_VELOCITY] = MINIMUM_VELOCITY
+                    print(len(joint_distance))
+                    print(len(weights))
                     joints_distances[joint] = joint_distance * weights / module
                 else:
                     recording_0 = motion_0.recordings[output_type]

@@ -87,7 +87,10 @@ class MyIO:
             export_process_information("generating " + meta_data.label + " from " + meta_data.file_name)
             if current_file != meta_data.file_name:
                 current_file = meta_data.file_name
-                all_path: str = RECORDINGS_FOLDER + meta_data.file_name + "\\data.xlsx"
+                if meta_data.file_path is not None:
+                    all_path = meta_data.file_path
+                else:
+                    all_path: str = RECORDINGS_FOLDER + meta_data.file_name + "\\data.xlsx"
                 motion_data = pd.read_excel(all_path, sheet_name=self.input_settings.input_types, usecols=USED_COLUMNS)
 
             motion_data_cut: Dict[str, pd.DataFrame] = {}

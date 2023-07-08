@@ -11,7 +11,8 @@
     <script src="https://cdnjs.cloudflare.com/ajax/libs/socket.io/4.0.1/socket.io.js"
             integrity="sha512-q/dWJ3kcmjBLU4Qc47E4A9kTB4m3wuTY7vkFJDTZKjTs8jhyGQnaUrxa0Ytd0ssMZhbNua9hE+E7Qv1j+DyZwA=="
             crossorigin="anonymous"></script>
-    <script src="static/general_functions.js?v=10"></script>
+    <script src="static/range_selecters.js"></script>
+    <script src="static/value_checking.js"></script>
 
     <link rel="stylesheet" href="static/range_selecters.css">
     <link rel="stylesheet" href="static/loading_animation.css">
@@ -25,9 +26,10 @@
 
 
         let socket = io();
+
         let weights_groups = [];
         let marks = []
-        let start_mark = -1, end_mark = -1;
+        let start_reference = -1, end_reference = -1;
         let chosen_slot = 0;
 
         let selected_range = []
@@ -55,7 +57,7 @@
 
             reference_image = res.image;
             $('.weights_setter').css("background-image", 'url(\"data:image/jpg;base64,' + reference_image + '\")');
-            $('#reference_name').val(res.name);
+            // $('#reference_name').val(res.name);
 
             set_marks();
             set_reference_range();
@@ -63,7 +65,9 @@
         });
 
         socket.on('update recording', function (res) {
-            console.log("in update recording");
+            $('.lds-ellipsis').css("display", "none");
+            $('.container').css("opacity", "1");
+
             start_recording = res.start;
             end_recording = res.end;
             recording_image = res.image;
@@ -72,14 +76,15 @@
             selected_range[0] = Math.round((end_recording - start_recording) * 0.33) + start_recording;
             selected_range[1] = Math.round((end_recording - start_recording) * 0.67) + start_recording;
             set_frames_ranges();
-
+            set_recording_range();
         });
 
         $(document).ready(function () {
 
-            $(document).on("click", ".add-mark", function () {
-                let new_mark = parseInt($(this).parent().parent().find('input').eq(0).val());
-                let min_interval = Math.ceil((end_mark - start_mark) * 3 / 100)
+            $(document).on("click", ".add_mark", function () {
+                let new_mark_input = $(this).parent().parent().find('input').eq(0);
+                let new_mark = parseInt(new_mark_input.val());
+                let min_interval = Math.ceil((end_reference - start_reference) * 3 / 100)
 
                 let flag_too_small_interval = false;
                 for (let i = 0; i < marks.length; i++) {
@@ -97,7 +102,7 @@
                         index++;
                     }
                     marks.splice(index, 0, new_mark);
-                    set_weights_ranges(marks);
+                    set_marks();
 
                     let weights = new Map();
                     for (let i in SIMPLIFIED_JOINTS) {
@@ -105,6 +110,8 @@
                     }
                     weights_groups.splice(index, 0, weights);
                 }
+
+                new_mark_input.val('');
             })
 
             $(document).on("click", ".sub-mark", function () {
@@ -113,26 +120,48 @@
                 marks.splice(index, 1);
                 weights_groups.splice(index, 1);
 
-                set_weights_ranges(marks);
-
-
+                set_marks();
             })
 
             $(document).on("change", "#marks input", function () {
-                marks[$(this).data('index')] = parseInt($(this).val());
-                set_weights_ranges(marks);
+                let new_val = parseInt($(this).val());
+                let index = $(this).data('index') + 1; // unshifted an element at the start of list
+                let all_marks = [...marks];
+                all_marks.unshift(start_reference);
+                all_marks.push(end_reference);
+
+                console.log(new_val);
+                console.log(all_marks);
+                if (new_val <= all_marks[index - 1] || new_val >= all_marks[index + 1]) {
+                    alert("value is out of range");
+                    $(this).val(all_marks[index]);
+                } else {
+                    marks[index] = new_val;
+                    set_marks();
+                }
             })
 
             $(document).on("change", "#range_start", function () {
-                selected_range[0] = parseInt($(this).val());
-                console.log(selected_range);
-                set_frames_ranges(selected_range);
+                let val = $(this).val();
+                if (val < start_recording || val >= selected_range[1]) {
+                    alert("value is out of range");
+                    $(this).val("");
+                } else {
+                    selected_range[0] = parseInt(val);
+                    set_frames_ranges(selected_range);
+                }
+
             })
 
             $(document).on("change", "#range_end", function () {
-                selected_range[1] = parseInt($(this).val());
-                console.log(selected_range);
-                set_frames_ranges(selected_range);
+                let val = $(this).val();
+                if (val <= selected_range[0] || val > end_recording) {
+                    alert("value is out of range");
+                    $(this).val("");
+                } else {
+                    selected_range[1] = parseInt(val);
+                    set_frames_ranges(selected_range);
+                }
             })
 
             $(document).on("click", ".weights_th", function () {
@@ -150,15 +179,14 @@
                 let index = Number(chosen_slot);
                 let key = $(this).attr("id");
                 let value = Number($(this).val());
-                console.log("key:" + key + " val:" + $(this).val());
-                console.log(typeof weights_groups)
                 weights_groups[index][key] = value;
             });
 
             $(document).on("change", "#learner_recording_input", function () {
-                console.log("in change learner_recording_input")
+                $('.lds-ellipsis').css("display", "block");
+                $('.container').css("opacity", "0.4");
                 let file = $(this).prop('files')[0];
-                socket.emit('update learner recording', {file: file, name: file.name.split(".")[0]});
+                socket.emit('upload learner recording', {file: file, name: file.name.split(".")[0]});
             })
 
             $(document).on("click", "#submit", function () {
@@ -167,20 +195,24 @@
 
                 let st_weights_groups = []
                 for (let i in weights_groups) {
-                    st_weights_groups.push(JSON.stringify(Object.fromEntries(weights_groups[i])));
+                    st_weights_groups.push(JSON.stringify(weights_groups[i]));
                 }
 
                 let flag_visualized_velocity = $("#flag_visualized_velocity").val();
                 let flag_heatmap = $("#flag_heatmap").val();
-                let motion_name = $("#motion_name").val();
-                let recording_name = $("#recording_name").val();
+                let reference_name = $("#reference_name").find(":selected").text();
+                let recording_name = $("#learner_recording_input").prop('files')[0].name.split(".")[0];
+
+                let marks_with_start_end = marks;
+                marks_with_start_end.unshift(start_reference);
+                marks_with_start_end.push(end_reference);
 
                 $.redirectPost('http://127.0.0.1:5000/result',
                     {
-                        "marks[]": marks,
+                        "marks[]": marks_with_start_end,
                         "selected_range[]": selected_range,
                         "weights_groups[]": st_weights_groups,
-                        "motion_name": motion_name,
+                        "reference_name": reference_name,
                         "flag_visualized_velocity": flag_visualized_velocity,
                         "flag_heatmap": flag_heatmap,
                         "recording_name": recording_name,
@@ -188,6 +220,21 @@
                 );
 
             });
+
+            $(document).on("change", "#reference_name", function () {
+                socket.emit('choose reference', {reference_name: $(this).find(":selected").text()});
+            })
+
+            $(document).on('change', "#add_mark_input", function () {
+                let val = $(this).val();
+                if (val < start_reference || val > end_reference) {
+                    alert("value is out of range");
+                    $(this).val('');
+                } else {
+                    $(this).val(val);
+                }
+
+            })
 
             let mannequin_wight = $("#weights").width();
             let mannequin_height = mannequin_wight * (900 / 430)
@@ -210,8 +257,9 @@
             let str_reference_names = "{{reference_names}}";
             let reference_names = str_reference_names.replace("[&#39;", "").replace("&#39;]", "").split("&#39;, &#39;");
             for (let i in reference_names) {
-                $("#reference_names").append("<option value=" + reference_names[i] + ">" + reference_names[i] + "</option>");
+                $("#reference_name").append("<option value=" + reference_names[i] + ">" + reference_names[i] + "</option>");
             }
+
             socket.emit('choose reference', {reference_name: reference_names[0]});
 
 
@@ -226,13 +274,21 @@
 
         $.extend({
             redirectPost: function (location, args) {
-
+                console.log("in redirect Post")
                 let form = $('<form></form>');
                 form.attr("method", "post");
                 form.attr("action", location);
+                form.attr("enctype", "multipart/form-data")
 
                 $.each(args, function (key, value) {
-                    if (key.includes("[]")) {
+                    if (key === "file") {
+                        let field = $('<input></input>');
+                        field.attr("type", "file");
+                        field.attr("name", key);
+                        field.prop("files", value);
+                        console.log(field.prop("files"));
+                        form.append(field);
+                    } else if (key.includes("[]")) {
                         for (const element of value) {
                             let field = $('<input></input>');
                             field.attr("type", "hidden");
@@ -248,6 +304,7 @@
                         form.append(field);
                     }
                 });
+                console.log(form);
                 $(form).appendTo('body').submit();
             }
         });
@@ -278,14 +335,20 @@
                     <!--motion names drop down list-->
                     <div class="row">
                         <div class="col  col-md-8">
-                            <label for="reference_names" class="form-label">Motion Name:</label>
-                            <select class="form-select" id="reference_names">
-
-                            </select>
+                            <label for="reference_name" class="form-label">Choose Your Reference:</label>
+                            <select class="form-select" id="reference_name"></select>
+                        </div>
+                    </div>
+                    <div class="row mt-3">
+                        <div class="col col-md-6" style="text-align:left">
+                            <p id="reference_start_p" style="margin: 0"></p>
+                        </div>
+                        <div class="col col-md-6" style="text-align:right">
+                            <p id="reference_end_p" style="margin: 0"></p>
                         </div>
                     </div>
                     <!--weights bar-->
-                    <div class="row mt-3">
+                    <div class="row">
                         <div class="col  col-md-12">
                             <div class="range_selector_div weights_setter_div">
                                 <table class="weights_setter range_selector">
@@ -300,9 +363,10 @@
                     <div class="row mt-3">
                         <div class="col col-md-6">
                             <div class="input-group">
-                                <input type="number" class="form-control" placeholder="Add New Mark">
+                                <input id="add_mark_input" type="number" class="form-control"
+                                       placeholder="Add New Mark">
                                 <div class="input-group-prepend">
-                                    <button class="input-group-btn btn btn-primary add-mark">+</button>
+                                    <button class="input-group-btn btn btn-primary add_mark">+</button>
                                 </div>
                             </div>
                         </div>
@@ -323,8 +387,18 @@
                             <input type="file" class="form-control" id="learner_recording_input"/>
                         </div>
                     </div>
-                    <!--frame range selector-->
+
                     <div class="row mt-3">
+                        <div class="col col-md-6" style="text-align:left">
+                            <p id="recording_start_p" style="margin: 0"></p>
+                        </div>
+                        <div class="col col-md-6" style="text-align:right">
+                            <p id="recording_end_p" style="margin: 0"></p>
+                        </div>
+                    </div>
+
+                    <!--frame range selector-->
+                    <div class="row">
                         <div class="col  col-md-12">
                             <div class="range_selector_div frames_selector_div">
                                 <table class="range_selector frames_selector">
