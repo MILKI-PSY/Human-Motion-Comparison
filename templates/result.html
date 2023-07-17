@@ -8,23 +8,27 @@
 <script>
     function createElementFromHTML(htmlString) {
         let div = document.createElement('div');
-        div.innerHTML = htmlString.trim();
+        div.html(htmlString);
 
         // Change this to div.childNodes to support multiple top-level nodes.
         return div.firstChild;
     }
 
     $(document).ready(function () {
-        const node =createElementFromHTML("{{video}}");
-
-        const element = document.getElementById("video_container");
-        element.appendChild(node);
+        // let doc = new DOMParser().parseFromString({{video}}, 'text/html');
+        $("#video_container").html(doc.documentElement.textContent)
 
     })
 </script>
 <body>
 <div id="video_container">
-    <p>12321</p>
+    {% autoescape false %}
+        {{video}}
+    {% endautoescape %}
+</div>
+
+<div>
+    <a href="/human-motion-comparison/get-xlsx">Download Comparison Result</a>
 </div>
 </body>
 </html>

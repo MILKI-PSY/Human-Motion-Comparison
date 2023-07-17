@@ -32,8 +32,6 @@ class Comparison:
                                                                   recording_1.loc[:, joints_columns].values)
                     module: np.ndarray = vector_module(recording_0.loc[:, joints_columns].values)
                     module[module < MINIMUM_VELOCITY] = MINIMUM_VELOCITY
-                    print(len(joint_distance))
-                    print(len(weights))
                     joints_distances[joint] = joint_distance * weights / module
                 else:
                     recording_0 = motion_0.recordings[output_type]

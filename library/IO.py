@@ -31,7 +31,7 @@ class MyIO:
         self.flag_show_animation = flag_show_animation
         if self.flag_output_gif or self.flag_show_animation:
             if animation_settings is None:
-                raise Exception("Without Gif Setting")
+                raise Exception("Without Animation Setting")
             else:
                 self.animation_settings = animation_settings
         input_types = self.get_input_types()
@@ -42,7 +42,7 @@ class MyIO:
         input_types: List[str] = []
 
         if self.flag_output_xlsx:
-            output_types = self.xlsx_settings.output_types
+            output_types = self.xlsx_settings.output_types.copy()
             if "Score" in output_types:
                 output_types.remove("Score")
                 output_types.append(RECORDING_FOR_SCORE)
@@ -106,7 +106,7 @@ class MyIO:
 
         return motions
 
-    def output(self, motions: List[mt.Motion], result: Dict[str, pd.DataFrame]):
+    def python_application_output(self, motions: List[mt.Motion], result: Dict[str, pd.DataFrame]):
         if self.flag_output_xlsx:
             self.output_xlsx(result)
         if self.flag_show_animation or self.flag_output_gif:
@@ -116,19 +116,25 @@ class MyIO:
             if self.flag_output_gif:
                 ani.to_gif()
 
-    def output_xlsx(self, result):
-        export_process_information("writing the result to the out.xlsx")
-        all_path: str = OUTPUT_FOLDER + self.xlsx_settings.xlsx_filename + ".xlsx"
-        with pd.ExcelWriter(all_path) as writer:
-            for output_type in self.xlsx_settings.output_types:
-                result[output_type].to_excel(writer, sheet_name=output_type, index=False)
-
-    def output_web(self, motions: List[mt.Motion], result: Dict[str, pd.DataFrame]):
+    def web_application_output(self, motions: List[mt.Motion], result: Dict[str, pd.DataFrame]):
+        self.output_xlsx(result, TEMP_FOLDER + '/Result/' + self.xlsx_settings.xlsx_filename + '.xlsx')
         ani = Animation(motions, self.animation_settings, result[self.animation_settings.heatmap_recording])
         return ani.to_html5_video()
+
+    def output_xlsx(self, result, path=None):
+        export_process_information("writing the result to the .xlsx file")
+        all_path: str
+        if path is not None:
+            all_path = path
+        else:
+            all_path = OUTPUT_FOLDER + self.xlsx_settings.xlsx_filename + ".xlsx"
+        with pd.ExcelWriter(all_path) as writer:
+            print("---------------------------")
+            print(self.xlsx_settings.output_types)
+            for output_type in self.xlsx_settings.output_types:
+                result[output_type].to_excel(writer, sheet_name=output_type, index=False)
 
 
 def export_process_information(info: str) -> None:
     if DEBUG_INFO:
         print(info)
-

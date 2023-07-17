@@ -2,8 +2,9 @@ import os
 import shutil
 import json
 import io
+import html
 import pandas as pd
-from flask import Flask, render_template, request
+from flask import Flask, render_template, request, send_file
 from flask_socketio import SocketIO, emit
 from library.preprocessing import generate_velocity_line_graph, get_dataframe
 import library.motion as mt
@@ -18,18 +19,23 @@ socketio = SocketIO(app, engineio_logger=True, logger=True, max_http_buffer_size
                     ping_interval=300)
 
 
-@app.route("/", methods=['GET', 'POST'])
+@app.route("/human-motion-comparison/main", methods=['GET', 'POST'])
 def input_parameters():
-    return render_template('input.html', reference_names=os.listdir(REFERENCES_FOLDER))
+    return render_template('main.html', reference_names=os.listdir(REFERENCES_FOLDER))
 
 
-@app.route("/management", methods=['GET', 'POST'])
+@app.route("/human-motion-comparison/management", methods=['GET', 'POST'])
 def manage_references():
     return render_template('management.html', recording_names=os.listdir(RECORDINGS_FOLDER),
                            reference_names=os.listdir(REFERENCES_FOLDER))
 
 
-@app.route('/result', methods=['GET', 'POST'])
+@app.route('/human-motion-comparison/get-xlsx', methods=['GET', 'POST'])
+def get_xlsx():
+    return send_file(TEMP_FOLDER + "Result/result.xlsx")
+
+
+@app.route('/human-motion-comparison/result', methods=['GET', 'POST'])
 def result():
     weights_groups = pd.DataFrame([json.loads(weights) for weights in request.form.getlist("weights_groups[]")])
     marks = [int(mark) for mark in request.form.getlist("marks[]")]
@@ -38,14 +44,20 @@ def result():
     flag_visualized_vector = True if request.form.get("flag_visualized_velocity") == "yes" else False
     flag_heatmap = True if request.form.get("flag_heatmap") == "yes" else False
     recording_name = request.form.get("recording_name")
+    output_types = RECORDING_TYPES.copy()
+    output_types.append("Score")
 
+    print(output_types)
+
+    if recording_name is None:
+        return render_template('result.html')
     # selected_range = [9300, 9550]
     # selected_range = [9300, 9800]
 
     print(weights_groups)
     print(marks)
     meta_data_0 = mt.MetaData(reference_name, -1, -1, "Expert",
-                              file_path=REFERENCES_FOLDER + reference_name + "\\data.xlsx")
+                              file_path=REFERENCES_FOLDER + reference_name + "/data.xlsx")
     meta_data_1 = mt.MetaData(recording_name, selected_range[0], selected_range[-1], "Leaner",
                               file_path=TEMP_FOLDER + recording_name + ".xlsx")
 
@@ -57,11 +69,16 @@ def result():
         heatmap_recording="Score"
     )
 
+    xlsx_settings = myio.XlsxSetting(
+        output_types=output_types,
+        xlsx_filename="result"
+    )
+
     learning_io = myio.MyIO(
-        flag_output_xlsx=False,
+        flag_output_xlsx=True,
         flag_show_animation=True,
         flag_output_gif=False,
-        xlsx_settings=None,
+        xlsx_settings=xlsx_settings,
         animation_settings=animation_settings,
         motions_meta=[meta_data_0, meta_data_1]
     )
@@ -74,11 +91,14 @@ def result():
         motion.centre().confront()
 
     motions[1].synchronized_by(motions[0])
-    with app.test_request_context('/'):
-        socketio.emit('loading information', {'info': "comparing motions"}, namespace="/")
+
+    # with app.test_request_context('/'):
+    #     socketio.emit('loading information', {'info': "comparing motions"}, namespace="/")
     result = comparison.compare(motions[0], motions[1], learning_io.get_comparison_types())
 
-    return learning_io.output_web(motions, result)
+
+    return render_template('result.html', video=learning_io.web_application_output(motions, result))
+    # return learning_io.output_web(motions, result)
 
 
 @socketio.on('my event')
@@ -90,7 +110,7 @@ def mtest_message(message):
 @socketio.on('choose reference')
 def send_default_information_about_chosen_reference(message):
     reference_name = message['reference_name']
-    file_path = REFERENCES_FOLDER + reference_name + '\\information.json'
+    file_path = REFERENCES_FOLDER + reference_name + '/information.json'
 
     with open(file_path, "r") as json_file:
         data = json.load(json_file)
@@ -100,7 +120,7 @@ def send_default_information_about_chosen_reference(message):
 
 @socketio.on('choose recording')
 def send_default_information_about_lerner_recording(message):
-    file_path = RECORDINGS_FOLDER + message['recording_name'] + '\\information.json'
+    file_path = RECORDINGS_FOLDER + message['recording_name'] + '/information.json'
 
     # Open the file in read mode
     with open(file_path, "r") as json_file:
@@ -126,7 +146,7 @@ def connected_msg(message):
         os.rename(old_folder_path, folder_path)
     else:
         os.makedirs(folder_path)
-    file_path = folder_path + '\\information.json'
+    file_path = folder_path + '/information.json'
     for i, weights_group in enumerate(message["weights_groups"]):
         message["weights_groups"][i] = json.loads(weights_group)
 
@@ -139,7 +159,6 @@ def connected_msg(message):
 
 @socketio.on('delete reference')
 def connected_msg(message):
-    print(message["name"])
     folder_path = REFERENCES_FOLDER + message['name']
     shutil.rmtree(folder_path)
     emit('update reference list', {'reference_names': os.listdir(REFERENCES_FOLDER)})
@@ -182,12 +201,12 @@ def preprocess_and_save_new_recording(message):
 
     os.makedirs(folder_path)
 
-    information_path = folder_path + '\\information.json'
+    information_path = folder_path + '/information.json'
 
     with open(information_path, 'w+') as file:
         json.dump(information, file)
 
-    all_path = folder_path + "\\data.xlsx"
+    all_path = folder_path + "/data.xlsx"
     with pd.ExcelWriter(all_path) as writer:
         for recoding_type in RECORDING_TYPES:
             dataframe.to_excel(writer, sheet_name=recoding_type, index=False)
@@ -218,11 +237,11 @@ def preprocess_learner_recording(message):
 
     emit('update recording', information)
 
-    temp_path = TEMP_FOLDER + "\\" + message["name"] + ".xlsx"
-    with open(temp_path, "wb") as f:
-        f.write(data.getbuffer())
+    temp_path = TEMP_FOLDER + "/" + message["name"] + ".xlsx"
+    with open(temp_path, "wb") as file:
+        file.write(data.getbuffer())
 
 
 if __name__ == '__main__':
-    socketio.run(app, debug=True)
+    socketio.run(app, debug=True, host="0.0.0.0")
     # app.run()

@@ -11,10 +11,10 @@
     <script src="https://cdnjs.cloudflare.com/ajax/libs/socket.io/4.0.1/socket.io.js"
             integrity="sha512-q/dWJ3kcmjBLU4Qc47E4A9kTB4m3wuTY7vkFJDTZKjTs8jhyGQnaUrxa0Ytd0ssMZhbNua9hE+E7Qv1j+DyZwA=="
             crossorigin="anonymous"></script>
-    <script src="static/range_selecters.js"></script>
+    <script src="{{ url_for('static', filename='range_selecters.js')}}"></script>
 
-    <link rel="stylesheet" href="static/range_selecters.css">
-    <link rel="stylesheet" href="static/loading_animation.css">
+    <link rel="stylesheet" href="{{ url_for('static', filename='range_selecters.css')}}">
+    <link rel="stylesheet" href="{{ url_for('static', filename='loading_animation.css')}}">
 
     <script>
 
@@ -149,7 +149,7 @@
                     alert("value is out of range");
                     $(this).val(all_marks[index]);
                 } else {
-                    marks[index] = new_val;
+                    marks[index - 1] = new_val; // index for marks, without unshifted element
                     set_marks();
                 }
             })
@@ -253,6 +253,15 @@
                 weights_groups[index][key] = value;
             });
 
+            $(document).on("change", "#flag_description", function () {
+                let swich_description = $('.description');
+                if (swich_description.css("display") === "none") {
+                    swich_description.css("display", "block");
+                } else {
+                    swich_description.css("display", "none");
+                }
+            })
+
             $(document).on("click", "#submit", function () {
                 let reference_name = $("#reference_name").val();
                 let st_weights_groups = []
@@ -343,22 +352,27 @@
 
     <div class="row mt-3">
         <div class="col col-md-3 offset-md-1">
-            <div class="card mt-3">
+            <div class="card mb-3">
                 <div class="card-body">
+                    <p class="description">Click "-" to delete recording</p>
                     <label>Recording List</label>
                     <div id="recording-list"></div>
                     <div class="row mt-3">
+                        <p class="description">Click file input to upload new recording</p>
                         <div class="col col-md-12">
-                            <input type="file"  accept=".xlsx" class="form-control" id="new-recording"/>
+                            <input type="file" accept=".xlsx" class="form-control" id="new-recording"/>
                         </div>
                     </div>
                 </div>
             </div>
-            <div class="card mt-3">
+            <div class="card">
                 <div class="card-body">
+                    <p class="description">Click name to edite reference in the left column and click "-" to delete
+                        recording</p>
                     <label>Reference List</label>
                     <div id="reference-list"></div>
                     <div class="row mt-3">
+                        <p class="description">Click "+" to create a new reference in the left column</p>
                         <div class="col col-md-12">
                             <button class="btn btn-primary" id="new-reference" style="width: 100%">+</button>
                         </div>
@@ -367,9 +381,10 @@
             </div>
         </div>
         <div class="col col-md-4">
-            <div id="source_recording_card" class="card mt-3" style="display: none">
+            <div id="source_recording_card" class="card mb-3" style="display: none">
                 <div class="card-body">
                     <div class="row">
+                        <p class="description">Use the drop-down list below to choose recording</p>
                         <div class="col col-md-8">
                             <label for="recording_name" class="form-label">Source Recording:</label>
                             <select class="form-select recording_name_select" id="recording_name"> </select>
@@ -377,6 +392,7 @@
                     </div>
 
                     <div class="row mt-3">
+                        <p class="description">Use the selecter to choose the interval</p>
                         <div class="col col-md-6" style="text-align:left">
                             <p id="recording_start_p" style="margin: 0"></p>
                         </div>
@@ -402,6 +418,7 @@
 
                     <!--start/end frame numbers-->
                     <div class="row mt-3 range_inputs">
+                        <p class="description">Change the frame number and press "enter" to adjust selected interval</p>
                         <div class="col col-md-6">
                             <div class="input-group">
                                 <div class="input-group-prepend">
@@ -421,23 +438,26 @@
                     </div>
                     <!--confirm button-->
                     <div class="row mt-3">
+                        <p class="description">Click "comfirm" to generate new reference with selected interval</p>
                         <div class="col  col-md-3">
                             <button id="confirm_btn" class="btn btn-primary">Confirm</button>
                         </div>
                     </div>
                 </div>
             </div>
-
-            <div id="reference_card" , class="card mt-3">
+            <div id="reference_card" , class="card">
                 <div class="card-body">
                     <!--reference name input-->
                     <div class="row">
+                        <p class="description">Use the input to change reference name</p>
                         <div class="col  col-md-8">
                             <label for="recording_name" class="form-label">Reference Name:</label>
                             <input type="text" class="form-control" id="reference_name">
                         </div>
                     </div>
                     <div class="row mt-3">
+                        <p class="description">Drag cursors to set marks and click the interval to choose weight
+                            intervals</p>
                         <div class="col col-md-6" style="text-align:left">
                             <p id="reference_start_p" style="margin: 0"></p>
                         </div>
@@ -459,6 +479,7 @@
                     </div>
                     <!--marks frame numbers-->
                     <div class="row mt-3">
+                        <p class="description">Enter the frame number and click "+" to add a new mark</p>
                         <div class="col col-md-6">
                             <div class="input-group">
                                 <input type="number" class="form-control" id="add_mark_input"
@@ -469,7 +490,9 @@
                             </div>
                         </div>
                     </div>
-                    <div class="row" id="marks">
+                    <div class="row mt-3" id="marks">
+                        <p class="description">Change the frame number and press "enter" to adjust mark, click "-" to
+                            delete mark</p>
 
                     </div>
 
@@ -481,64 +504,83 @@
             </div>
         </div>
         <!--input-fields for weights-->
-        <div class="col col-md-3" id="weights"
-             style="background-image: url('static/mannequin.jpg'); position: relative; padding: 0">
-            <div style="left: 40%; top:5%; position: absolute; width: 23%">
-                <input type="number" class="form-control weight_input" min="0" max="1" step="0.01" name="weight"
-                       id="Head">
+        <div class="col col-md-3">
+            <div class="row">
+                <p class="description">Use inputs to set the weights for each joints</p>
             </div>
-            <div style="left: 14%;top: 20%; position: absolute; width: 23%">
-                <input type="number" class="form-control weight_input" min="0" max="1" step="0.01"
-                       id="Right Upper Arm">
-            </div>
-            <div style="left: 40%;top: 15%; position: absolute; width: 23%">
-                <input type="number" class="form-control weight_input" min="0" max="1" step="0.01" id="Neck">
-            </div>
-            <div style="left: 65%;top: 20%; position: absolute; width: 23%">
-                <input type="number" class="form-control weight_input" min="0" max="1" step="0.01"
-                       id="Left Upper Arm">
-            </div>
-            <div style="left: 9%;top: 35%; position: absolute; width: 23%">
-                <input type="number" class="form-control weight_input" min="0" max="1" step="0.01"
-                       id="Right Forearm">
-            </div>
-            <div style="left: 70%;top: 35%; position: absolute; width: 23%">
-                <input type="number" class="form-control weight_input" min="0" max="1" step="0.01"
-                       id="Left Forearm">
-            </div>
-            <div style="left: 3%;top: 55%; position: absolute; width: 23%">
-                <input type="number" class="form-control weight_input" min="0" max="1" step="0.01" id="Right Hand">
-            </div>
-            <div style="left: 76%;top: 55%; position: absolute; width: 23%">
-                <input type="number" class="form-control weight_input" min="0" max="1" step="0.01" id="Left Hand">
-            </div>
-            <div style="left: 28%;top: 52%; position: absolute; width: 23%">
-                <input type="number" class="form-control weight_input" min="0" max="1" step="0.01"
-                       id="Right Upper Leg">
-            </div>
-            <div style="left: 40%;top: 45%; position: absolute; width: 23%">
-                <input type="number" class="form-control weight_input" min="0" max="1" step="0.01" id="Pelvis">
-            </div>
-            <div style="left: 51%;top: 52%; position: absolute; width: 23%">
-                <input type="number" class="form-control weight_input" min="0" max="1" step="0.01"
-                       id="Left Upper Leg">
-            </div>
-            <div style="left: 28%;top: 68%; position: absolute; width: 23%">
-                <input type="number" class="form-control weight_input" min="0" max="1" step="0.01"
-                       id="Right Lower Leg">
-            </div>
-            <div style="left: 51%;top: 68%; position: absolute; width: 23%">
-                <input type="number" class="form-control weight_input" min="0" max="1" step="0.01"
-                       id="Left Lower Leg">
-            </div>
-            <div style="left: 28%;top: 93%; position: absolute; width: 23%">
-                <input type="number" class="form-control weight_input" min="0" max="1" step="0.01" id="Right Foot">
-            </div>
-            <div style="left: 51%;top: 93%; position: absolute; width: 23%">
-                <input type="number" class="form-control weight_input" min="0" max="1" step="0.01" id="Left Foot">
+            <div class="row" id="weights"
+                 style="background-image: url({{ url_for('static', filename= 'mannequin.jpg')}}); position: relative;padding: 0">
+                <div class="col col-md-12">
+                    <div style="left: 40%; top:5%; position: absolute; width: 23%">
+                        <input type="number" class="form-control weight_input" min="0" max="1" step="0.01" name="weight"
+                               id="Head">
+                    </div>
+                    <div style="left: 14%;top: 20%; position: absolute; width: 23%">
+                        <input type="number" class="form-control weight_input" min="0" max="1" step="0.01"
+                               id="Right Upper Arm">
+                    </div>
+                    <div style="left: 40%;top: 15%; position: absolute; width: 23%">
+                        <input type="number" class="form-control weight_input" min="0" max="1" step="0.01" id="Neck">
+                    </div>
+                    <div style="left: 65%;top: 20%; position: absolute; width: 23%">
+                        <input type="number" class="form-control weight_input" min="0" max="1" step="0.01"
+                               id="Left Upper Arm">
+                    </div>
+                    <div style="left: 9%;top: 35%; position: absolute; width: 23%">
+                        <input type="number" class="form-control weight_input" min="0" max="1" step="0.01"
+                               id="Right Forearm">
+                    </div>
+                    <div style="left: 70%;top: 35%; position: absolute; width: 23%">
+                        <input type="number" class="form-control weight_input" min="0" max="1" step="0.01"
+                               id="Left Forearm">
+                    </div>
+                    <div style="left: 3%;top: 55%; position: absolute; width: 23%">
+                        <input type="number" class="form-control weight_input" min="0" max="1" step="0.01"
+                               id="Right Hand">
+                    </div>
+                    <div style="left: 76%;top: 55%; position: absolute; width: 23%">
+                        <input type="number" class="form-control weight_input" min="0" max="1" step="0.01"
+                               id="Left Hand">
+                    </div>
+                    <div style="left: 28%;top: 52%; position: absolute; width: 23%">
+                        <input type="number" class="form-control weight_input" min="0" max="1" step="0.01"
+                               id="Right Upper Leg">
+                    </div>
+                    <div style="left: 40%;top: 45%; position: absolute; width: 23%">
+                        <input type="number" class="form-control weight_input" min="0" max="1" step="0.01" id="Pelvis">
+                    </div>
+                    <div style="left: 51%;top: 52%; position: absolute; width: 23%">
+                        <input type="number" class="form-control weight_input" min="0" max="1" step="0.01"
+                               id="Left Upper Leg">
+                    </div>
+                    <div style="left: 28%;top: 68%; position: absolute; width: 23%">
+                        <input type="number" class="form-control weight_input" min="0" max="1" step="0.01"
+                               id="Right Lower Leg">
+                    </div>
+                    <div style="left: 51%;top: 68%; position: absolute; width: 23%">
+                        <input type="number" class="form-control weight_input" min="0" max="1" step="0.01"
+                               id="Left Lower Leg">
+                    </div>
+                    <div style="left: 28%;top: 93%; position: absolute; width: 23%">
+                        <input type="number" class="form-control weight_input" min="0" max="1" step="0.01"
+                               id="Right Foot">
+                    </div>
+                    <div style="left: 51%;top: 93%; position: absolute; width: 23%">
+                        <input type="number" class="form-control weight_input" min="0" max="1" step="0.01"
+                               id="Left Foot">
+                    </div>
+                </div>
             </div>
         </div>
-
+        <div class="col col-md-1">
+            <form action="main">
+                <input type="submit" class="btn btn-primary" value="Main Page"/>
+            </form>
+            <div class="form-check form-switch mt-3">
+                <input class="form-check-input" type="checkbox" id="flag_description" value="yes" checked>
+                <label class="form-check-label" for="flag_description">Description</label>
+            </div>
+        </div>
     </div>
 
 </div>

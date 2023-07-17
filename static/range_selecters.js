@@ -59,7 +59,7 @@ function set_marks() {
             $('.weights-setter-tr').prepend('<th class="range weights_th"></th>')
 
             marks_div.append(
-                '<div class="col col-md-6 mt-3">\n' +
+                '<div class="col col-md-6 md-3">\n' +
                 '   <div class="input-group">\n' +
                 '       <input type="number" class="form-control">\n' +
                 '       <div class="input-group-prepend">\n' +
