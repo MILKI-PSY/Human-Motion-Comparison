@@ -1,10 +1,9 @@
-import os
 import shutil
 import json
 import io
-import html
+import os
 import pandas as pd
-from flask import Flask, render_template, request, send_file
+from flask import Flask, render_template, request, send_file, send_from_directory
 from flask_socketio import SocketIO, emit
 from library.preprocessing import generate_velocity_line_graph, get_dataframe
 import library.motion as mt
@@ -12,11 +11,16 @@ import library.comparison as cp
 import library.IO as myio
 from library.constants import *
 
-app = Flask(__name__)
+app = Flask(__name__, static_folder="human-motion-comparison/static")
 app.config['SECRET_KEY'] = 'secret!'
 app.config['MAX_CONTENT_LENGTH'] = 1024 * 1024 * 1024
 socketio = SocketIO(app, engineio_logger=True, logger=True, max_http_buffer_size=1e9, ping_timeout=900,
-                    ping_interval=300)
+                    ping_interval=300, resource='/human-motion-comparison/socket.io')
+
+
+@app.route('/human-motion-comparison/static/<path:path>')
+def send_js(path):
+    return send_from_directory("human-motion-comparison/static/", path)
 
 
 @app.route("/human-motion-comparison/main", methods=['GET', 'POST'])
@@ -96,8 +100,9 @@ def result():
     #     socketio.emit('loading information', {'info': "comparing motions"}, namespace="/")
     result = comparison.compare(motions[0], motions[1], learning_io.get_comparison_types())
 
-
-    return render_template('result.html', video=learning_io.web_application_output(motions, result))
+    image = learning_io.output_average_score_image(result)
+    return render_template('result.html', video=learning_io.web_application_output(motions, result),
+                           image=image)
     # return learning_io.output_web(motions, result)
 
 
@@ -146,13 +151,16 @@ def connected_msg(message):
         os.rename(old_folder_path, folder_path)
     else:
         os.makedirs(folder_path)
-    file_path = folder_path + '/information.json'
+
     for i, weights_group in enumerate(message["weights_groups"]):
         message["weights_groups"][i] = json.loads(weights_group)
 
     del message["old_name"]
-    with open(file_path, 'w+') as file:
+    with open(folder_path + '/information.json', 'w+') as file:
         json.dump(message, file)
+
+    if not os.path.exists(folder_path+'/data.xlsx'):
+        shutil.move(TEMP_FOLDER + "Selected/data.xlsx", folder_path)
 
     emit('update reference list', {'reference_names': os.listdir(REFERENCES_FOLDER)})
 
@@ -169,11 +177,17 @@ def preprocess_recording(message):
     file_name = message["recording_name"]
     start = message["selected_range_start"]
     end = message["selected_range_end"]
-    image = generate_velocity_line_graph(get_dataframe(file_name, start, end))
+    data = get_dataframe(file_name, start, end)
+    image = generate_velocity_line_graph(data)
 
     weights = {}
     for joint in SIMPLIFIED_JOINTS:
         weights[joint] = 1
+
+    all_path = TEMP_FOLDER + "Selected/data.xlsx"
+    with pd.ExcelWriter(all_path) as writer:
+        for recoding_type in RECORDING_TYPES:
+            data.to_excel(writer, sheet_name=recoding_type, index=False)
 
     emit('update reference',
          {'weights_groups': [weights], "marks": [], "image": image, "name": "New Reference", "start": start,

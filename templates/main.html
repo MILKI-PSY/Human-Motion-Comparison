@@ -11,20 +11,25 @@
     <script src="https://cdnjs.cloudflare.com/ajax/libs/socket.io/4.0.1/socket.io.js"
             integrity="sha512-q/dWJ3kcmjBLU4Qc47E4A9kTB4m3wuTY7vkFJDTZKjTs8jhyGQnaUrxa0Ytd0ssMZhbNua9hE+E7Qv1j+DyZwA=="
             crossorigin="anonymous"></script>
-    <script src="{{ url_for('static', filename='range_selecters.js')}}"></script>
+    <script src="/human-motion-comparison/static/range_selecters.js"></script>
 
-    <link rel="stylesheet" href="{{ url_for('static', filename='range_selecters.css')}}">
-    <link rel="stylesheet" href="{{ url_for('static', filename='loading_animation.css')}}">
+    <link rel="stylesheet" href="/human-motion-comparison/static/range_selecters.css">
+    <link rel="stylesheet" href="/human-motion-comparison/static/loading_animation.css">
 
     <script>
+
 
         const SIMPLIFIED_JOINTS = ["Pelvis", "Neck", "Head", "Right Upper Arm", "Right Forearm",
             "Right Hand", "Left Upper Arm", "Left Forearm", "Left Hand",
             "Right Upper Leg", "Right Lower Leg", "Right Foot", "Left Upper Leg",
             "Left Lower Leg", "Left Foot"];
 
+        const HOST = "https://milki-psy.dbis.rwth-aachen.de"
+        //const HOST = "localhost:5000"
 
-        let socket = io();
+        let socket = io(HOST, {
+            path: "/human-motion-comparison/socket.io"
+        });
 
         let weights_groups = [];
         let marks = []
@@ -190,9 +195,9 @@
 
             $(document).on("change", "#flag_description", function () {
                 let swich_description = $('.description');
-                if(swich_description.css("display") === "none"){
+                if (swich_description.css("display") === "none") {
                     swich_description.css("display", "block");
-                }else{
+                } else {
                     swich_description.css("display", "none");
                 }
             })
@@ -213,9 +218,9 @@
 
                 let marks_with_start_end = marks;
                 marks_with_start_end.unshift(start_reference);
-                marks_with_start_end.push(end_reference);
+                marks_with_start_end.push(end_reference + 1);
 
-                $.redirectPost('http://127.0.0.1:5000/human-motion-comparison/result',
+                $.redirectPost('/human-motion-comparison/result',
                     {
                         "marks[]": marks_with_start_end,
                         "selected_range[]": selected_range,
@@ -488,7 +493,7 @@
                 <p class="description">Use inputs to set the weights for each joints</p>
             </div>
             <div class="row" id="weights"
-                 style="background-image: url({{ url_for('static', filename= 'mannequin.jpg')}}); position: relative;padding: 0">
+                 style="background-image: url('/human-motion-comparison/static/mannequin.jpg'); position: relative;padding: 0">
                 <div class="col col-md-12">
                     <div style="left: 40%; top:5%; position: absolute; width: 23%">
                         <input type="number" class="form-control weight_input" min="0" max="1" step="0.01" name="weight"

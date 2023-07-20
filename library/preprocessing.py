@@ -14,7 +14,7 @@ def get_dataframe(file_name, start, end):
         used_cols.append(joints + " z")
     used_cols += ["Frame"]
 
-    all_path = RECORDINGS_FOLDER + file_name + "\\data.xlsx"
+    all_path = RECORDINGS_FOLDER + file_name + "/data.xlsx"
     velocity_recording = pd.read_excel(all_path, sheet_name="Segment Velocity", usecols=used_cols)
     return velocity_recording[start: end]
 

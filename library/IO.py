@@ -1,8 +1,12 @@
 import pandas as pd
 import library.motion as mt
+import numpy as np
+import matplotlib.pyplot as plt
 from library.animation import Animation, AnimationSetting
 from library.constants import *
 from typing import List, Dict, Optional, Union
+import io
+import base64
 
 
 class XlsxSetting:
@@ -90,7 +94,7 @@ class MyIO:
                 if meta_data.file_path is not None:
                     all_path = meta_data.file_path
                 else:
-                    all_path: str = RECORDINGS_FOLDER + meta_data.file_name + "\\data.xlsx"
+                    all_path: str = RECORDINGS_FOLDER + meta_data.file_name + "/data.xlsx"
                 motion_data = pd.read_excel(all_path, sheet_name=self.input_settings.input_types, usecols=USED_COLUMNS)
 
             motion_data_cut: Dict[str, pd.DataFrame] = {}
@@ -129,10 +133,27 @@ class MyIO:
         else:
             all_path = OUTPUT_FOLDER + self.xlsx_settings.xlsx_filename + ".xlsx"
         with pd.ExcelWriter(all_path) as writer:
-            print("---------------------------")
-            print(self.xlsx_settings.output_types)
             for output_type in self.xlsx_settings.output_types:
                 result[output_type].to_excel(writer, sheet_name=output_type, index=False)
+
+    def output_average_score_image(self, result):
+        average_score = result["Score"].mean()
+        plt.axis('off')
+        fig, ax = plt.subplots(figsize=(10, 20))
+        joint_positions: np.ndarray = np.array(list(HEATMAP_JOINT_POSITION.values()))
+        average_score_image = ax.scatter(joint_positions[:, 0], joint_positions[:, 1], s=200,
+                                         vmin=MINIMUM_SCORE, vmax=MAXIMUM_SCORE,
+                                         c=np.zeros(len(HEATMAP_JOINT_POSITION)), cmap=COLOR_MAP)
+        average_score_image.set_array(average_score)
+
+        for joint in SIMPLIFIED_JOINTS:
+            position = HEATMAP_JOINT_POSITION[joint]
+            ax.text(position[0], position[1], s=round(average_score[joint], 2))
+
+        io_bytes = io.BytesIO()
+        fig.savefig(io_bytes, format='jpg')
+        io_bytes.seek(0)
+        return base64.b64encode(io_bytes.read()).decode()
 
 
 def export_process_information(info: str) -> None:

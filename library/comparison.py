@@ -10,7 +10,7 @@ class Comparison:
         self.frame_wise_weights: pd.DataFrame = pd.DataFrame(columns=weights_groups.columns)
         for i in range(len(marks) - 1):
             start: int = marks[i]
-            end: int = marks[i + 1] + 1
+            end: int = marks[i + 1]
             weights: pd.DataFrame = weights_groups[i:i + 1]
             for frame_number in range(start, end):
                 self.frame_wise_weights: pd.DataFrame = pd.concat([self.frame_wise_weights, weights], ignore_index=True)

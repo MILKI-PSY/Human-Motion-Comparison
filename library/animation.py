@@ -9,6 +9,7 @@ from library.constants import *
 from typing import List, Generator, Tuple, Dict, Optional, Union
 from matplotlib import colors as mcolors
 
+
 Color = Tuple[float, float, float]
 Color_generator = Generator[Color, None, None]
 
