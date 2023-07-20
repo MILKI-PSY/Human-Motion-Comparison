@@ -24,8 +24,8 @@
             "Right Upper Leg", "Right Lower Leg", "Right Foot", "Left Upper Leg",
             "Left Lower Leg", "Left Foot"];
 
-        const HOST = "https://milki-psy.dbis.rwth-aachen.de"
-        //const HOST = "localhost:5000"
+        //const HOST = "https://milki-psy.dbis.rwth-aachen.de"
+        const HOST = "localhost:5000"
 
         let socket = io(HOST, {
             path: "/human-motion-comparison/socket.io"
@@ -54,7 +54,6 @@
 
             $('.weight_input').each(function () {
                 let key = $(this).attr("id");
-                console.log(typeof (weights_groups[chosen_slot]));
                 let value = weights_groups[chosen_slot][key];
                 $(this).val(value);
             });
@@ -108,13 +107,12 @@
                     marks.splice(index, 0, new_mark);
                     set_marks();
 
-                    let weights = new Map();
+                    let weights = {};
                     for (let i in SIMPLIFIED_JOINTS) {
-                        weights.set(SIMPLIFIED_JOINTS[i], 1);
+                        weights[(SIMPLIFIED_JOINTS[i])] = 1;
                     }
                     weights_groups.splice(index, 0, weights);
                 }
-
                 new_mark_input.val('');
             })
 
@@ -170,11 +168,10 @@
 
             $(document).on("click", ".weights_th", function () {
                 let index = $(this).data("index");
-                chosen_slot = index;
 
-                $('.weight_input input').each(function () {
+                $('.weight_input').each(function () {
                     let key = $(this).attr("id");
-                    let value = weights_groups[chosen_slot].get(key);
+                    let value = weights_groups[chosen_slot][key];
                     $(this).val(value);
                 });
             });

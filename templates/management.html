@@ -120,13 +120,13 @@
                     marks.splice(index, 0, new_mark);
                     set_marks();
 
-                    let weights = new Map();
+                    let weights = {};
                     for (let i in SIMPLIFIED_JOINTS) {
-                        weights.set(SIMPLIFIED_JOINTS[i], 1);
+                        weights[(SIMPLIFIED_JOINTS[i])] = 1;
                     }
                     weights_groups.splice(index, 0, weights);
                 }
-
+                console.log()
                 new_mark_input.val('');
             })
 

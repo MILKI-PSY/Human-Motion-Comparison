@@ -52,7 +52,6 @@ function set_marks() {
     let marks_div = $('#marks');
     let marks_inputs = marks_div.find('input');
     let difference_value = Math.abs(marks_inputs.length - marks.length);
-    console.log(marks, difference_value);
     $(".weights_setter").colResizable({disable: true});
     if (marks_inputs.length <= marks.length) {
         for (let i = 0; i < difference_value; i++) {
