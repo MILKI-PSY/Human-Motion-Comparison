@@ -23,6 +23,11 @@ def send_js(path):
     return send_from_directory("human-motion-comparison/static/", path)
 
 
+@app.route("/human-motion-comparison/help", methods=['GET', 'POST'])
+def help():
+    return render_template('help.html')
+
+
 @app.route("/human-motion-comparison/main", methods=['GET', 'POST'])
 def input_parameters():
     return render_template('main.html', reference_names=os.listdir(REFERENCES_FOLDER))
@@ -159,7 +164,7 @@ def connected_msg(message):
     with open(folder_path + '/information.json', 'w+') as file:
         json.dump(message, file)
 
-    if not os.path.exists(folder_path+'/data.xlsx'):
+    if not os.path.exists(folder_path + '/data.xlsx'):
         shutil.move(TEMP_FOLDER + "Selected/data.xlsx", folder_path)
 
     emit('update reference list', {'reference_names': os.listdir(REFERENCES_FOLDER)})

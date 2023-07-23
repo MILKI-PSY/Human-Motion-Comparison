@@ -7,21 +7,6 @@
     <script src="https://cdn.staticfile.org/jquery/1.10.2/jquery.min.js"></script>
     <script src="https://cdn.staticfile.org/twitter-bootstrap/5.1.1/js/bootstrap.bundle.min.js"></script>
 </head>
-<script>
-    function createElementFromHTML(htmlString) {
-        let div = document.createElement('div');
-        div.html(htmlString);
-
-        // Change this to div.childNodes to support multiple top-level nodes.
-        return div.firstChild;
-    }
-
-    $(document).ready(function () {
-        // let doc = new DOMParser().parseFromString({{video}}, 'text/html');
-        $("#video_container").html(doc.documentElement.textContent)
-
-    })
-</script>
 <body>
 <div class="container col-md-12" style="margin: 0">
     <div class="row">
@@ -34,7 +19,7 @@
 
         <div class="col col-md-6">
             {% autoescape false %}
-            <img style="width: 600px;height: 800px" src="data:image/jpg;base64, {{image}}"/>
+            <img style="width: 600px;margin: auto" src="data:image/jpg;base64, {{image}}"/>
             {% endautoescape %}
         </div>
     </div>

@@ -24,8 +24,8 @@
             "Right Upper Leg", "Right Lower Leg", "Right Foot", "Left Upper Leg",
             "Left Lower Leg", "Left Foot"];
 
-        //const HOST = "https://milki-psy.dbis.rwth-aachen.de"
-        const HOST = "localhost:5000"
+        const HOST = "https://milki-psy.dbis.rwth-aachen.de"
+        //const HOST = "localhost:5000"
 
         let socket = io(HOST, {
             path: "/human-motion-comparison/socket.io"
@@ -64,6 +64,7 @@
 
             set_marks();
             set_reference_range();
+            $(".weights_th").first().css("background-color", "rgb(13,110,252,0.1)");
 
         });
 
@@ -168,6 +169,12 @@
 
             $(document).on("click", ".weights_th", function () {
                 let index = $(this).data("index");
+                chosen_slot = index;
+
+                $('.weights_th').each(function () {
+                    $(this).css("background-color", "transparent");
+                });
+                $(this).css("background-color", "rgba(13,110,252,0.1)");
 
                 $('.weight_input').each(function () {
                     let key = $(this).attr("id");
@@ -336,16 +343,16 @@
 <!--<div id="chartdiv"></div>-->
 
 
-<div class="container mt-3 col-md-12">
+<div class="container mt-3 col-12">
 
     <div class="row">
-        <div class="col col-md-4 offset-md-2">
+        <div class="col col-4 offset-md-2">
             <div class="card">
                 <div class="card-body">
                     <!--motion names drop down list-->
                     <div class="row">
                         <p class="description">Use the drop-down list below to choose your reference</p>
-                        <div class="col  col-md-8">
+                        <div class="col  col-8">
                             <label for="reference_name" class="form-label">Choose Your Reference:</label>
                             <select class="form-select" id="reference_name"></select>
                         </div>
@@ -353,16 +360,16 @@
                     <div class="row mt-3">
                         <p class="description">Drag cursors to set marks and click the interval to choose weight
                             intervals</p>
-                        <div class="col col-md-6" style="text-align:left">
+                        <div class="col col-6" style="text-align:left">
                             <p id="reference_start_p" style="margin: 0"></p>
                         </div>
-                        <div class="col col-md-6" style="text-align:right">
+                        <div class="col col-6" style="text-align:right">
                             <p id="reference_end_p" style="margin: 0"></p>
                         </div>
                     </div>
                     <!--weights bar-->
                     <div class="row">
-                        <div class="col  col-md-12">
+                        <div class="col  col-12">
                             <div class="range_selector_div weights_setter_div">
                                 <table class="weights_setter range_selector">
                                     <tr class="weights-setter-tr">
@@ -375,7 +382,7 @@
                     <!--marks frame numbers-->
                     <div class="row mt-3">
                         <p class="description">Enter the frame number and click "+" to add a new mark</p>
-                        <div class="col col-md-6">
+                        <div class="col col-6">
                             <div class="input-group">
                                 <input id="add_mark_input" type="number" class="form-control"
                                        placeholder="Add New Mark">
@@ -398,7 +405,7 @@
                     <!--learner's motion recordings drop down list-->
                     <div class="row">
                         <p class="description">Use the file input to upload your recording</p>
-                        <div class="col col-md-8">
+                        <div class="col col-8">
                             <label for="learner_recording_input" class="form-label">Please Upload Your
                                 Recording:</label>
                             <input type="file" class="form-control" id="learner_recording_input"/>
@@ -407,17 +414,17 @@
 
                     <div class="row mt-3">
                         <p class="description">Use the selecter to choose the interval</p>
-                        <div class="col col-md-6" style="text-align:left">
+                        <div class="col col-6" style="text-align:left">
                             <p id="recording_start_p" style="margin: 0"></p>
                         </div>
-                        <div class="col col-md-6" style="text-align:right">
+                        <div class="col col-6" style="text-align:right">
                             <p id="recording_end_p" style="margin: 0"></p>
                         </div>
                     </div>
 
                     <!--frame range selector-->
                     <div class="row">
-                        <div class="col  col-md-12">
+                        <div class="col  col-12">
                             <div class="range_selector_div frames_selector_div">
                                 <table class="range_selector frames_selector">
                                     <tr>
@@ -433,7 +440,7 @@
                     <!--start/end frame numbers-->
                     <div class="row mt-3 range_inputs">
                         <p class="description">Change the frame number and press "enter" to adjust selected interval</p>
-                        <div class="col col-md-6">
+                        <div class="col col-6">
                             <div class="input-group">
                                 <div class="input-group-prepend">
                                     <span class="input-group-text">Start</span>
@@ -441,7 +448,7 @@
                                 <input type="number" class="form-control" id="range_start">
                             </div>
                         </div>
-                        <div class="col col-md-6">
+                        <div class="col col-6">
                             <div class="input-group">
                                 <div class="input-group-prepend">
                                     <span class="input-group-text">End</span>
@@ -477,7 +484,7 @@
                     </div>
                     <!--submit button-->
                     <div class="row mt-3 ">
-                        <div class="col col-md-3">
+                        <div class="col col-3">
                             <button id="submit" class="btn btn-primary">Submit</button>
                         </div>
                     </div>
@@ -485,13 +492,13 @@
             </div>
         </div>
         <!--input-fields for weights-->
-        <div class="col col-md-3">
+        <div class="col col-3">
             <div class="row">
                 <p class="description">Use inputs to set the weights for each joints</p>
             </div>
             <div class="row" id="weights"
                  style="background-image: url('/human-motion-comparison/static/mannequin.jpg'); position: relative;padding: 0">
-                <div class="col col-md-12">
+                <div class="col col-12">
                     <div style="left: 40%; top:5%; position: absolute; width: 23%">
                         <input type="number" class="form-control weight_input" min="0" max="1" step="0.01" name="weight"
                                id="Head">
@@ -553,7 +560,7 @@
                 </div>
             </div>
         </div>
-        <div class="col col-md-1 offset-md-1">
+        <div class="col col-1 offset-md-1">
             <form action="management">
                 <input type="submit" class="btn btn-primary" value="Management Page"/>
             </form>

@@ -58,7 +58,7 @@ function set_marks() {
             $('.weights-setter-tr').prepend('<th class="range weights_th"></th>')
 
             marks_div.append(
-                '<div class="col col-md-6 md-3">\n' +
+                '<div class="col col-6 md-3">\n' +
                 '   <div class="input-group">\n' +
                 '       <input type="number" class="form-control">\n' +
                 '       <div class="input-group-prepend">\n' +
@@ -155,7 +155,7 @@ function set_references_list(reference_names) {
     for (let i in reference_names) {
         $("#reference-list").prepend(
             '<div  class="row mt-3">\n' +
-            '    <div class="col col-md-12 btn-group">\n' +
+            '    <div class="col col-12 btn-group">\n' +
             '       <button class="input-group-btn form-control references_btn" value="' + reference_names[i] + '">' + reference_names[i] + '</button>\n' +
             '       <button class="input-group-btn btn btn-danger del-reference" value="' + reference_names[i] + '">-</button>\n' +
             '    </div>\n' +
@@ -170,7 +170,7 @@ function set_recordings_list(recording_name) {
     for (let i in recording_name) {
         recording_list.prepend(
             '<div  class="row mt-3">\n' +
-            '    <div class="col col-md-12 btn-group">\n' +
+            '    <div class="col col-12 btn-group">\n' +
             '       <button class="input-group-btn form-control recording_btn" value="' + recording_name[i] + '">' + recording_name[i] + '</button>\n' +
             '       <button class="input-group-btn btn btn-danger del-recording" value="' + recording_name[i] + '">-</button>\n' +
             '    </div>\n' +
