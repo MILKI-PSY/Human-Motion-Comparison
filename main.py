@@ -50,21 +50,18 @@ def result():
     marks = [int(mark) for mark in request.form.getlist("marks[]")]
     selected_range = [int(selected_range) for selected_range in request.form.getlist("selected_range[]")]
     reference_name = request.form.get("reference_name")
-    flag_visualized_vector = True if request.form.get("flag_visualized_velocity") == "yes" else False
-    flag_heatmap = True if request.form.get("flag_heatmap") == "yes" else False
+    flag_visualized_vector = True if request.form.get("flag_visualized_velocity") == "true" else False
+    flag_heatmap = True if request.form.get("flag_heatmap") == "true" else False
+    flag_dtw = True if request.form.get("flag_dtw") == "true" else False
     recording_name = request.form.get("recording_name")
     output_types = RECORDING_TYPES.copy()
     output_types.append("Score")
-
-    print(output_types)
 
     if recording_name is None:
         return render_template('result.html')
     # selected_range = [9300, 9550]
     # selected_range = [9300, 9800]
 
-    print(weights_groups)
-    print(marks)
     meta_data_0 = mt.MetaData(reference_name, -1, -1, "Expert",
                               file_path=REFERENCES_FOLDER + reference_name + "/data.xlsx")
     meta_data_1 = mt.MetaData(recording_name, selected_range[0], selected_range[-1], "Leaner",
@@ -94,12 +91,15 @@ def result():
 
     motions = learning_io.get_motions()
 
+    print("length", len(motions[0].recordings["Segment Angular Velocity"]))
+
     comparison = cp.Comparison(weights_groups, marks)
 
     for motion in motions:
         motion.centre().confront()
 
-    motions[1].synchronized_by(motions[0])
+    if flag_dtw:
+        motions[1].synchronized_by(motions[0])
 
     # with app.test_request_context('/'):
     #     socketio.emit('loading information', {'info': "comparing motions"}, namespace="/")
@@ -209,7 +209,7 @@ def preprocess_and_save_new_recording(message):
 
     information = {
         "start": 0,
-        "end": len(dataframe),
+        "end": len(dataframe)-1,
         "image": generate_velocity_line_graph(dataframe),
     }
 

@@ -6,9 +6,8 @@
     <link href="https://cdn.staticfile.org/twitter-bootstrap/5.1.1/css/bootstrap.min.css" rel="stylesheet">
     <script src="https://cdn.staticfile.org/jquery/1.10.2/jquery.min.js"></script>
     <script src="https://cdn.staticfile.org/twitter-bootstrap/5.1.1/js/bootstrap.bundle.min.js"></script>
-    <script
-            src="https://cdnjs.cloudflare.com/ajax/libs/mathjax/2.7.7/MathJax.js?config=TeX-MML-AM_CHTML">
-    </script>
+    <script src="https://polyfill.io/v3/polyfill.min.js?features=es6"></script>
+    <script id="MathJax-script" async src="https://cdn.jsdelivr.net/npm/mathjax@3/es5/tex-mml-chtml.js"></script>
 </head>
 <style>
     p {
@@ -31,8 +30,7 @@
         <h3>Main</h3>
 
         <div class="col col-5">
-            <ul id="main_help">
-
+            <ul>
                 <li class="mt-3">How to manage marks</li>
                 <ul>
                     <li> You can add a new mark by enter the frame number of the new marks in <p style="color: #fb7e27">
@@ -40,8 +38,8 @@
                             style="color: #22af4b"> mark list [3] </p>
                     </li>
                     <li> You can change a mark by drag the corresponding cursor in <p style="color: #ec1c24"> range
-                        selector
-                        [1]</p>, or change the corresponding input field in <p style="color: #22af4b"> mark list [3]</p>
+                        selector [1]</p>, or change the corresponding input field in <p style="color: #22af4b"> mark
+                        list [3]</p>
                     </li>
                     <li> You can delete a mark by click "-" for the corresponding input field in <p
                             style="color: #22af4b">
@@ -49,13 +47,17 @@
                     </li>
                 </ul>
 
-                <li class="mt-3" id="set_weights">How to set weights</li>
+                <li class="mt-3" id="select reference">How to set reference</li>
                 <ol>
                     <li>
                         Choose the reference you want to set weights in the <p style="color: #870015">drop down
-                        list[0]</p>, The information of the selected reference will be show in <p
+                        list [0]</p>, The information of the selected reference will be show in <p
                             style="color: #ec1c24"> range selector [1]</p>
                     </li>
+                </ol>
+
+                <li class="mt-3" id="set_weights">How to set weights</li>
+                <ol>
                     <li>
                         Click the interval that you want to set weights in the <p style="color: #ec1c24">
                         range selector [1] </p>, the selected interval will have a <p style="color: rgb(13,110,252)">
@@ -77,11 +79,10 @@
                     <li>
                         Select the range by drag the cursors in <p style="color: #3f48ca">range selector [5]</p> or
                         change the frame number in <p style="color: #a249a3">input fields [6]</p>. Unselected ranges
-                        will
-                        be dim.
+                        will be dim.
                     </li>
                 </ol>
-                <li>Get results</li>
+                <li class="mt-3">Get results</li>
                 <ol>
                     <li>
                         Set reference and set student recording.
@@ -93,13 +94,13 @@
                         Click <p style="color: #b4e51d">"submit" button [8]</p> and wait until jump to the result page.
                     </li>
                 </ol>
-                <li>How to go management page</li>
+                <li class="mt-3">How to go other pages</li>
                 <ul>
                     <li>
-                        Click the <p style="color: #7091bd">"Management page" button [10]</p>
+                        Click corresponding <p style="color: #7091bd">buttons [10]</p> to jump to other pages.
                     </li>
                 </ul>
-                <li>How to show/hide descriptions</li>
+                <li class="mt-3">How to show/hide descriptions</li>
                 <ul>
                     <li>
                         turn the <p style="color: #c7bee6">switch [11]</p> on/of.
@@ -115,33 +116,204 @@
         </div>
     </div>
     <div class="row">
-        <h3>Result</h3>
-        <ul>
-            <li>Explain of "result.xlsx"</li>
-            Sheets in "result.xlsx" consist of columns representing different joints and rows corresponding to frame
-            numbers. There are six sheets:
-            <ol>
-                <li>"Segment Position" is the position distances between expert and learner for each joint in each
-                    frame. The unit of measurement is m
-                </li>
-                <li>"Segment Velocity" is the Euclidean velocity distance between expert and learner for each joint in
-                    each frame. The unit of measurement is m/s
-                </li>
-                <li>
-                    "Segment Acceleration" is the Euclidean acceleration distance between expert and learner for each
-                    joint in each frame. The unit of measurement is (m/s)^2
-                </li>
-                <li>
-                    "Segment Angular Velocity" is the Euclidean angular velocity distance between expert and learner for
-                    each joint in each frame. The unit of measurement is deg/s
-                </li>
-                <li>
-                    "Segment Angular Acceleration" is the Euclidean angular acceleration distance between expert and
-                    learner for each joint in each frame. The unit of measurement is (deg/s)^2
-                </li>
+        <h3>Management</h3>
+        <div class="col col-5">
+            <ul>
+                <li class="mt-3">How to manage recordings</li>
+                <ul>
+                    <li> You can view all recordings in <p style="color: #b4e51d">recording list [0]</p>.
+                    </li>
+                    <li>
+                        You can upload a new recording into the system with the <p style="color: #16612b"> file input
+                        field [1]</p>. After uploading the new recording will be show in the <p style="color: #b4e51d">
+                        recording list [0]</p>
+                    </li>
+                    <li> You can delete a recording by click the by click "-" button for the corresponding recording in
+                        <p style="color: #b4e51d">recording list [0]</p>
+                    </li>
+                </ul>
+                <li class="mt-3">How to change the reference name</li>
+                <ol>
+                    <li>
+                        Click the reference which you want to edit in the <p style="color: #881dc3">reference list
+                        [2]</p>. After loading, the information of the selected reference will be show in the <p
+                            style="color: #00a1e7"> input field [8]</p> and <p style="color: #3f48ca"> range selector
+                        [9]</p>
+                    </li>
+                    <li>
+                        You can change the name of selected reference with the <p style="color: #00a1e7"> input field
+                        [8]</p>.
+                    </li>
 
-            </ol>
-        </ul>
+                </ol>
+                <li class="mt-3">How to manage marks for a reference</li>
+                <ol>
+                    <li>
+                        Click the reference which you want to edit in the <p style="color: #881dc3">reference list
+                        [2]</p>. After loading, the information of the selected reference will be show in the <p
+                            style="color: #00a1e7"> input field [8]</p> and <p style="color: #3f48ca"> range selector
+                        [9]</p>
+                    </li>
+                    <li> You can add a new mark by enter the frame number of the new marks in <p style="color: #a249a3">
+                        input field [10] </p>, and click the "+" button. The new mark will appear in the mark list.
+                    </li>
+                    <li> You can change a mark by drag the corresponding cursor in <p style="color: #3f48ca"> range
+                        selector [9]</p>, or change the corresponding input field in mark list.
+                    </li>
+                    <li> You can delete a mark by click "-" for the corresponding input field in mark list.
+                    </li>
+                </ol>
+
+                <li class="mt-3">How to set weights for a reference</li>
+                <ol>
+                    <li>
+                        Click the reference which you want to edit in the <p style="color: #881dc3">reference list
+                        [2]</p>. After loading, the information of the selected reference will be show in the <p
+                            style="color: #00a1e7"> input field [8]</p> and <p style="color: #3f48ca"> range selector
+                        [9]</p>
+                    </li>
+                    <li>
+                        Click the interval that you want to set weights in the <p style="color: #3f48cb">
+                        range selector [9] </p>, the selected interval will have a <p style="color: rgb(13,110,252)">
+                        background color </p>. Weights of the selected interval will be show in the <p
+                            style="color: #98D8E9FF">weights input fields [12] </p>
+                    </li>
+                    <li>
+                        Change the weight number on the joint you want in the <p style="color: #98D8E9FF">weights input
+                        fields [12] </p>
+                    </li>
+                </ol>
+
+                <li class="mt-3">How to create a new reference</li>
+                <ol>
+                    <li>
+                        Click <p style="color: #380e50"> "+" button [3]</p>.
+                    </li>
+                    <li>
+                        Select the source recording with the <p style="color: #870015"> drop down list [4]</p>, the
+                        information of selected recording will be show in the <p style="color: #ec1c24">range selector
+                        [5]</p>
+                    </li>
+                    <li>
+                        Select the range by drag the cursors in <p style="color: #ec1c24">range selector [5]</p> or
+                        change the frame number in <p style="color: #fb7e27">input fields [6]</p>. Unselected ranges
+                        will be dim.
+                    </li>
+                    <li>
+                        Click <p style="color: #22af4b"> "Confirm" button [7]</p>. After loading, the information of the
+                        new reference will be show in the <p style="color: #00a1e7"> input field [8]</p> and <p
+                            style="color: #3f48ca"> range selector [9]</p>
+                    </li>
+                    <li> Edit the new reference like the previous tutorials: "How to change the reference name", "How to
+                        manage marks for a reference", and "How to set weights for a reference".
+                    </li>
+                    <li> Click <p style="color: #fdc80e"> "Submit" button [11]</p>. The new reference will appear in the
+                        <p style="color: #881dc3"> reference list [2]</p>
+                    </li>
+                </ol>
+
+                <li class="mt-3">How to go other pages</li>
+                <ul>
+                    <li>
+                        Click corresponding <p style="color: #7091bd">buttons [13]</p> to jump to other pages.
+                    </li>
+                </ul>
+
+                <li class="mt-3">How to show/hide descriptions</li>
+                <ul>
+                    <li>
+                        turn the <p style="color: #c7bee6">switch [14]</p> on/of.
+                    </li>
+                </ul>
+
+            </ul>
+
+        </div>
+        <div class="col col-7">
+            <div class="mt-3">
+                <img src="/human-motion-comparison/static/help_images/management.png">
+            </div>
+        </div>
+    </div>
+
+    <div class="row">
+        <h3>Result</h3>
+        <div class="col col-5">
+            <ul>
+                <li mt-3>Explain of animation</li>
+                The result of the comparison will be present as an animation.
+                <ul>
+                    <li>
+                        There are <p style="color: #fdc80e">three frame numbers [0]</p>. The first one
+                        corresponds to the frame number of the resulting animation, the second one corresponds to
+                        the frame number of the reference from its original recording, and the third one corresponds to
+                        the frame number of the student recording from its original recording.
+                    </li>
+                    <li>
+                        The <p style="color: #ec1c24">legend [1]</p> can help you understand the correspondence between
+                        characters and colors.
+                    </li>
+                    <li>
+                        The <p style="color: #16612b">heat map [2]</p> reflects the real-time score, the higher the
+                        score, the redder the color.
+                    </li>
+                </ul>
+                <li class="mt-3">How to download "result.xlsx"</li>
+                <ul>
+                    Click <p style="color: #7091bd">"Download Comparison Result" [3]</p>
+                </ul>
+
+                <li class="mt-3">Explain of "result.xlsx"</li>
+                Sheets in "result.xlsx" consist of columns representing different joints and rows corresponding to
+                frame numbers. There are six sheets:
+                <ol>
+                    <li>"Segment Position" is the position distances between expert and learner for each joint in
+                        each frame. The unit of measurement is \( m \)
+                    </li>
+                    <li>"Segment Velocity" is the Euclidean velocity distance between expert and learner for each
+                        joint in each frame. The unit of measurement is \( m/s \)
+                    </li>
+                    <li>
+                        "Segment Acceleration" is the Euclidean acceleration distance between expert and learner for
+                        each joint in each frame. The unit of measurement is \( (m/s)^2 \)
+                    </li>
+                    <li>
+                        "Segment Angular Velocity" is the Euclidean angular velocity distance between expert and
+                        learner for each joint in each frame. The unit of measurement is \( deg/s \)
+                    </li>
+                    <li>
+                        "Segment Angular Acceleration" is the Euclidean angular acceleration distance between expert
+                        and learner for each joint in each frame. The unit of measurement is \( (deg/s)^2 \)
+                    </li>
+                    <li>
+                        “Score”: It is a number to evaluate the performance of each joint in each frame.
+                        \[Score = {Euc(w_0 - w_1) \over max(w_0, c) }. Weight\]
+                        Where \( c \) is a hyperparameter that can be set in the program, and the default number of c is
+                        1
+                    </li>
+                </ol>
+                <li class="mt-3">Explain of average score image</li>
+                <ul>
+                    <li>
+                        The <p style="color: #881dc3">average score image [4]</p> is a heat map of average score of
+                        whole comparison, it can be understood as an overall score. The higher the score, the redder the
+                        color.
+                    </li>
+                </ul>
+                <li class="mt-3">How to go other pages</li>
+                <ul>
+                    <li>
+                        Click corresponding <p style="color: #b4e51d">buttons [5]</p> to jump to other pages.
+                    </li>
+                </ul>
+            </ul>
+        </div>
+
+        <div class="col col-7">
+            <div class="mt-3">
+                <img src="/human-motion-comparison/static/help_images/result.png">
+            </div>
+        </div>
     </div>
 </div>
 </body>

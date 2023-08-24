@@ -1,9 +1,14 @@
 from environs import Env
+import os
 
 env = Env()
 env.read_env()
 
-DATA_FOLDER = env.str('DATA_FOLDER')
+if os.name == "nt":
+    DATA_FOLDER = env.str('WIN_DATA_FOLDER')
+else:
+    DATA_FOLDER = env.str("DOCKER_DATA_FOLDER")
+
 OUTPUT_FOLDER = DATA_FOLDER + env.str('OUTPUT_FOLDER')
 RECORDINGS_FOLDER = DATA_FOLDER + env.str('RECORDINGS_FOLDER')
 REFERENCES_FOLDER = DATA_FOLDER + env.str('REFERENCES_FOLDER')

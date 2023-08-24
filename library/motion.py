@@ -96,8 +96,7 @@ class Motion:
                 for recording_name in self.recordings.keys():
                     synchronized_recordings[recording_name] = pd.concat(
                         [synchronized_recordings[recording_name],
-                         self.recordings[recording_name][index_2: index_2 + 1][:]
-                         ], ignore_index=True)
+                         self.recordings[recording_name][index_2: index_2 + 1][:]], ignore_index=True)
         self.recordings = synchronized_recordings
 
         return self

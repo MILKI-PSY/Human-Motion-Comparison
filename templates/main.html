@@ -24,12 +24,13 @@
             "Right Upper Leg", "Right Lower Leg", "Right Foot", "Left Upper Leg",
             "Left Lower Leg", "Left Foot"];
 
-        const HOST = "https://milki-psy.dbis.rwth-aachen.de"
-        //const HOST = "localhost:5000"
 
+        let HOST = "https://milki-psy.dbis.rwth-aachen.de";
+        //let HOST = "localhost:5000";
         let socket = io(HOST, {
             path: "/human-motion-comparison/socket.io"
         });
+
 
         let weights_groups = [];
         let marks = []
@@ -44,7 +45,7 @@
         });
 
         socket.on('update reference', function (res) {
-            $('.lds-ellipsis').css("display", "none");
+            $('.loading-animation').css("display", "none");
             $('.container').css("opacity", "1");
 
             start_reference = res.start;
@@ -64,12 +65,15 @@
 
             set_marks();
             set_reference_range();
+            $('.weights_th').each(function () {
+                $(this).css("background-color", "transparent");
+            });
             $(".weights_th").first().css("background-color", "rgb(13,110,252,0.1)");
 
         });
 
         socket.on('update recording', function (res) {
-            $('.lds-ellipsis').css("display", "none");
+            $('.loading-animation').css("display", "none");
             $('.container').css("opacity", "1");
 
             start_recording = res.start;
@@ -98,7 +102,9 @@
                     }
                 }
 
-                if (flag_too_small_interval) {
+                if (!new_mark) {
+                    alert("empty input");
+                } else if (flag_too_small_interval) {
                     alert("too small interval");
                 } else {
                     let index = 0;
@@ -191,7 +197,7 @@
             });
 
             $(document).on("change", "#learner_recording_input", function () {
-                $('.lds-ellipsis').css("display", "block");
+                $('.loading-animation').css("display", "block");
                 $('.container').css("opacity", "0.4");
                 let file = $(this).prop('files')[0];
                 socket.emit('upload learner recording', {file: file, name: file.name.split(".")[0]});
@@ -207,31 +213,46 @@
             })
 
             $(document).on("click", "#submit", function () {
-                $('.loading_animation').css("display", "block");
-                $('.container').css("opacity", "0.4")
+                $('.loading-animation').css("display", "block");
+                $('.container').css("opacity", "0.4");
 
                 let st_weights_groups = []
                 for (let i in weights_groups) {
                     st_weights_groups.push(JSON.stringify(weights_groups[i]));
                 }
 
-                let flag_visualized_velocity = $("#flag_visualized_velocity").val();
-                let flag_heatmap = $("#flag_heatmap").val();
+                let flag_visualized_velocity = $("#flag_visualized_velocity").is(":checked");
+                let flag_heatmap = $("#flag_heatmap").is(":checked");
+                let flag_dtw = $("#flag_dtw").is(":checked");
                 let reference_name = $("#reference_name").find(":selected").text();
                 let recording_name = $("#learner_recording_input").prop('files')[0].name.split(".")[0];
 
-                let marks_with_start_end = marks;
+                let marks_with_start_end = [...marks];
                 marks_with_start_end.unshift(start_reference);
                 marks_with_start_end.push(end_reference + 1);
+
+                let selected_range_fix = [...selected_range];
+                selected_range_fix[1]++;
+
+                let difference = (selected_range[1] - selected_range[0]) - (end_reference - start_reference)
+
+                console.log(difference);
+                if (!flag_dtw && difference != 0) {
+                    alert("The length of reference and student recording must be same, when flag of DTW is off");
+                    $('.loading_animation').css("display", "none");
+                    $('.container').css("opacity", "1");
+                    return;
+                }
 
                 $.redirectPost('/human-motion-comparison/result',
                     {
                         "marks[]": marks_with_start_end,
-                        "selected_range[]": selected_range,
+                        "selected_range[]": selected_range_fix,
                         "weights_groups[]": st_weights_groups,
                         "reference_name": reference_name,
                         "flag_visualized_velocity": flag_visualized_velocity,
                         "flag_heatmap": flag_heatmap,
+                        "flag_dtw": flag_dtw,
                         "recording_name": recording_name,
                     }
                 );
@@ -332,7 +353,7 @@
 </head>
 <body>
 
-<div class="lds-ellipsis">
+<div class="loading-animation">
     <div></div>
     <div></div>
     <div></div>
@@ -463,22 +484,29 @@
                 <div class="card-body">
                     <!--flag_visualized_velocity-->
                     <div class="row">
-                        <p class="description">Use switches for animation settings</p>
+                        <p class="description">Use switches for settings</p>
                         <div class="col">
                             <div class="form-check form-switch">
-                                <input class="form-check-input" type="checkbox" id="flag_visualized_velocity"
-                                       value="no">
+                                <input class="form-check-input" type="checkbox" id="flag_visualized_velocity">
                                 <label class="form-check-label" for="flag_visualized_velocity">With Visualized
                                     Velocity</label>
                             </div>
                         </div>
                     </div>
                     <!--flag_heatmap-->
-                    <div class="row mt-3">
+                    <div class="row">
                         <div class="col">
                             <div class="form-check form-switch">
-                                <input class="form-check-input" type="checkbox" id="flag_heatmap" value="yes" checked>
+                                <input class="form-check-input" type="checkbox" id="flag_heatmap" checked>
                                 <label class="form-check-label" for="flag_heatmap">With Heatmap</label>
+                            </div>
+                        </div>
+                    </div>
+                    <div class="row">
+                        <div class="col">
+                            <div class="form-check form-switch">
+                                <input class="form-check-input" type="checkbox" id="flag_dtw" checked>
+                                <label class="form-check-label" for="flag_dtw">Use DTW</label>
                             </div>
                         </div>
                     </div>
@@ -564,6 +592,9 @@
             <form action="management">
                 <input type="submit" class="btn btn-primary" value="Management Page"/>
             </form>
+            <form action="help" class="mt-3">
+                <input type="submit" class="btn btn-primary" value="Help Page"/>
+            </form>
             <div class="form-check form-switch mt-3">
                 <input class="form-check-input" type="checkbox" id="flag_description" value="yes" checked>
                 <label class="form-check-label" for="flag_description">Description</label>
@@ -572,7 +603,3 @@
     </div>
 
 </div>
-
-
-</body>
-</html>
