@@ -1,14 +1,14 @@
 import numpy as np
 import pandas as pd
 from library.constants import *
-from dtw import dtw, DTW
+from dtw import *
 from scipy.spatial.distance import euclidean
 from typing import List, Dict, Set, Optional
 
 
 class MetaData:
-    def __init__(self, file_name: str, start: int, end: int, label: str, file_path: Optional[str] = None) -> None:
-        self.file_name = file_name
+    def __init__(self, file_path: str, start: Optional[int] = None, end: Optional[int] = None,
+                 label: Optional[str] = None) -> None:
         self.start = start
         self.end = end
         self.label = label
@@ -77,8 +77,8 @@ class Motion:
 
         if DEBUG_INFO: print("synchronizing " + self.meta.label + " by " + reference_motion.meta.label)
 
-        reference_recording: pd.DataFrame = reference_motion.recordings[RECORDING_FOR_SKELETON]
-        self_recording: pd.DataFrame = self.recordings[RECORDING_FOR_SKELETON]
+        reference_recording: pd.DataFrame = reference_motion.recordings[RECORDING_FOR_DTW]
+        self_recording: pd.DataFrame = self.recordings[RECORDING_FOR_DTW]
 
         alignment: DTW = dtw(reference_recording, self_recording, dist_method=frame_distance)
 

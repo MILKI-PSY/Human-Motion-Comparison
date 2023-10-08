@@ -9,14 +9,17 @@ from library.constants import *
 from typing import List, Generator, Tuple, Dict, Optional, Union
 from matplotlib import colors as mcolors
 
-
 Color = Tuple[float, float, float]
 Color_generator = Generator[Color, None, None]
 
 
 class AnimationSetting:
-    def __init__(self, flag_visualized_vector: bool, flag_heatmap: bool, flag_repeat: bool,
-                 visualized_vector: str, heatmap_recording: str, gif_filename: str = "example"):
+    def __init__(self, flag_show: bool, flag_save: bool, flag_to_html5_video: bool, flag_visualized_vector: bool, flag_heatmap: bool,
+                 flag_repeat: bool, visualized_vector: str, heatmap_recording: str, gif_filename: str = "example"):
+        self.flag_show = flag_show
+        self.flag_save = flag_save
+        self.flag_to_html5_video = flag_to_html5_video
+        self.flag_animation = flag_show or flag_save or flag_to_html5_video
         self.flag_visualized_vector = flag_visualized_vector
         if self.flag_visualized_vector:
             self.visualized_vector = visualized_vector

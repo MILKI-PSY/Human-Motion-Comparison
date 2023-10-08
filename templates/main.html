@@ -24,7 +24,6 @@
             "Right Upper Leg", "Right Lower Leg", "Right Foot", "Left Upper Leg",
             "Left Lower Leg", "Left Foot"];
 
-
         let HOST = "https://milki-psy.dbis.rwth-aachen.de";
         //let HOST = "localhost:5000";
         let socket = io(HOST, {
@@ -236,7 +235,6 @@
 
                 let difference = (selected_range[1] - selected_range[0]) - (end_reference - start_reference)
 
-                console.log(difference);
                 if (!flag_dtw && difference != 0) {
                     alert("The length of reference and student recording must be same, when flag of DTW is off");
                     $('.loading_animation').css("display", "none");
@@ -299,7 +297,6 @@
             }
 
             socket.emit('choose reference', {reference_name: reference_names[0]});
-
 
         })
 

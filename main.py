@@ -8,7 +8,7 @@ from flask_socketio import SocketIO, emit
 from library.preprocessing import generate_velocity_line_graph, get_dataframe
 import library.motion as mt
 import library.comparison as cp
-import library.IO as myio
+import library.wrapper as wrapper
 from library.constants import *
 
 app = Flask(__name__, static_folder="human-motion-comparison/static")
@@ -62,12 +62,16 @@ def result():
     # selected_range = [9300, 9550]
     # selected_range = [9300, 9800]
 
-    meta_data_0 = mt.MetaData(reference_name, -1, -1, "Expert",
-                              file_path=REFERENCES_FOLDER + reference_name + "/data.xlsx")
-    meta_data_1 = mt.MetaData(recording_name, selected_range[0], selected_range[-1], "Leaner",
-                              file_path=TEMP_FOLDER + recording_name + ".xlsx")
+    file_path_0 = REFERENCES_FOLDER + reference_name + "/data.xlsx"
+    meta_data_0 = mt.MetaData(file_path_0, -1, -1, "Expert")
 
-    animation_settings = myio.AnimationSetting(
+    file_path_1 = TEMP_FOLDER + recording_name + ".xlsx"
+    meta_data_1 = mt.MetaData(file_path_1, selected_range[0], selected_range[-1], "Leaner")
+
+    animation_settings = wrapper.AnimationSetting(
+        flag_show=False,
+        flag_save=False,
+        flag_to_html5_video=True,
         flag_visualized_vector=flag_visualized_vector,
         flag_heatmap=flag_heatmap,
         flag_repeat=False,
@@ -75,24 +79,26 @@ def result():
         heatmap_recording="Score"
     )
 
-    xlsx_settings = myio.XlsxSetting(
+    xlsx_settings = wrapper.XlsxSetting(
+        flag_save=True,
+        xlsx_filename="result",
         output_types=output_types,
-        xlsx_filename="result"
+        save_path=TEMP_FOLDER + '/Result/result.xlsx'
     )
 
-    learning_io = myio.MyIO(
-        flag_output_xlsx=True,
-        flag_show_animation=True,
-        flag_output_gif=False,
+    average_score_image_settings = wrapper.AverageScoreImageSetting(
+        flag_to_base64=True,
+        flag_show=False
+    )
+
+    learning_wrapper = wrapper.Wrapper(
         xlsx_settings=xlsx_settings,
         animation_settings=animation_settings,
+        average_score_image_settings = average_score_image_settings,
         motions_meta=[meta_data_0, meta_data_1]
     )
 
-    motions = learning_io.get_motions()
-
-    print("length", len(motions[0].recordings["Segment Angular Velocity"]))
-
+    motions = learning_wrapper.get_motions()
     comparison = cp.Comparison(weights_groups, marks)
 
     for motion in motions:
@@ -101,20 +107,20 @@ def result():
     if flag_dtw:
         motions[1].synchronized_by(motions[0])
 
-    # with app.test_request_context('/'):
-    #     socketio.emit('loading information', {'info': "comparing motions"}, namespace="/")
-    result = comparison.compare(motions[0], motions[1], learning_io.get_comparison_types())
+    result = comparison.compare(motions[0], motions[1], learning_wrapper.get_comparison_types())
 
-    image = learning_io.output_average_score_image(result)
-    return render_template('result.html', video=learning_io.web_application_output(motions, result),
-                           image=image)
-    # return learning_io.output_web(motions, result)
+    video, image = learning_wrapper.output(motions, result)
+    return render_template('result.html', video=video, image=image)
 
 
-@socketio.on('my event')
-def mtest_message(message):
-    print(message)
-    emit('my response', {'data': message['data']})
+@socketio.on('connect')
+def connected_msg():
+    print('client connected.')
+
+
+@socketio.on('disconnect')
+def connected_msg():
+    print('client disconnected.')
 
 
 @socketio.on('choose reference')
@@ -138,18 +144,8 @@ def send_default_information_about_lerner_recording(message):
     emit('update recording', data)
 
 
-@socketio.on('connect')
-def connected_msg():
-    print('client connected.')
-
-
-@socketio.on('disconnect')
-def connected_msg():
-    print('client disconnected.')
-
-
 @socketio.on('save reference')
-def connected_msg(message):
+def save_reference(message):
     folder_path = REFERENCES_FOLDER + message['name']
     old_folder_path = REFERENCES_FOLDER + message['old_name']
     if os.path.exists(old_folder_path) and message['old_name'] != "":
@@ -171,7 +167,7 @@ def connected_msg(message):
 
 
 @socketio.on('delete reference')
-def connected_msg(message):
+def delete_reference(message):
     folder_path = REFERENCES_FOLDER + message['name']
     shutil.rmtree(folder_path)
     emit('update reference list', {'reference_names': os.listdir(REFERENCES_FOLDER)})
@@ -209,7 +205,7 @@ def preprocess_and_save_new_recording(message):
 
     information = {
         "start": 0,
-        "end": len(dataframe)-1,
+        "end": len(dataframe) - 1,
         "image": generate_velocity_line_graph(dataframe),
     }
 
@@ -234,7 +230,7 @@ def preprocess_and_save_new_recording(message):
 
 
 @socketio.on('delete recording')
-def connected_msg(message):
+def delete_recording(message):
     print(message["name"])
     folder_path = RECORDINGS_FOLDER + message['name']
     shutil.rmtree(folder_path)
